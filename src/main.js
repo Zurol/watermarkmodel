@@ -47,7 +47,7 @@ textTexture.anisotropy = 16;
 textTexture.flipY = false;
 
 const texturaBaseImg = new Image();
-texturaBaseImg.src = '/textura_tela.png';
+texturaBaseImg.src = './textura_tela.png';
 
 function actualizarTextura() {
     ctx.clearRect(0, 0, textCanvas.width, textCanvas.height);
@@ -108,7 +108,7 @@ dirLight.position.set(5, 5, 5);
 scene.add(dirLight);
 
 const loader = new GLTFLoader();
-loader.load('/modelo.glb', (gltf) => {
+loader.load('./modelo.glb', (gltf) => {
     modelo3D = gltf.scene;
     modelo3D.traverse((child) => {
         if (child.isMesh) {
@@ -173,10 +173,14 @@ gui.add(settings, 'mostrarDebug').name('Ver Canvas Debug').onChange(val => {
 });
 
 // Eventos globales
-window.addEventListener('mousedown', () => { lastInteractionTime = Date.now();
-    isAutoplayActive = false; });
-window.addEventListener('touchstart', () => { lastInteractionTime = Date.now();
-    isAutoplayActive = false; });
+window.addEventListener('mousedown', () => {
+    lastInteractionTime = Date.now();
+    isAutoplayActive = false;
+});
+window.addEventListener('touchstart', () => {
+    lastInteractionTime = Date.now();
+    isAutoplayActive = false;
+});
 
 const inputExterno = document.getElementById('nombreInput');
 if (inputExterno) {
