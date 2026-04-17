@@ -44,6 +44,27 @@
     }
 }
 
+@font-face {
+    font-family: 'Sharp Grotesk';
+    src: url('./fonts/SharpGrotesk-Medium10.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Sharp Grotesk';
+    src: url('./fonts/SharpGrotesk-SemiBold25.woff2') format('woff2');
+    font-weight: 600;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Sharp Grotesk';
+    src: url('./fonts/SharpGrotesk-Bold20.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+}
+
 body {
     margin: 0;
 }

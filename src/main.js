@@ -3,36 +3,54 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import GUI from 'lil-gui';
 
-// --- 1. ESTADO GLOBAL (SETTINGS) ---
+// --- 1. DEFINICIÓN DE PIVOTES (Coordenadas UV) ---
+const pivotes = {
+    'Espalda': { x: 775, y: 280 },
+    'Pecho': { x: 512, y: 350 },
+    'Manga Izq': { x: 850, y: 500 },
+    'Manga Der': { x: 170, y: 500 }
+};
+
+// --- 2. ESTADO GLOBAL (SETTINGS) ---
 const settings = {
-    texto: "DISEÑO 3D",
-    fuente: 'Arial',
+    nombre: "JUGADOR",
+    numero: "10",
+    fuente: 'Impact',
     negrita: true,
-    tamanioFuente: 100,
-    posX: 512,
-    posY: 750,
+    tamanioNombre: 65,
+    tamanioNumero: 230,
+    posicionPredefinida: 'Espalda', // Pivote activo por defecto
+    posX: 775, // Inicializado con el valor de Espalda
+    posY: 280, // Inicializado con el valor de Espalda
+    espaciado: 150,
     escalaX: 1,
     escalaY: 1,
-    colorTexto: '#ffffff',
-    // Iluminación y Escena
+    colorTexto: '#d80000',
     intensidadLuz: 2.0,
     colorLuz: '#ffffff',
-    colorFondo: '#111111', // Nueva propiedad
-    // Autoplay
-    autoplay: true,
+    colorFondo: '#111111',
+    autoplay: false,
     velocidadRotacion: 0.005,
     tiempoEspera: 3,
-    // Debug y Acciones
     mostrarDebug: true,
     descargarImagen: function() { descargarCaptura(); }
 };
 
+// Función para sincronizar posX/posY con el pivote seleccionado al arrancar
+function aplicarPivoteInicial() {
+    const p = pivotes[settings.posicionPredefinida];
+    if (p) {
+        settings.posX = p.x;
+        settings.posY = p.y;
+    }
+}
+
 let modelo3D = null;
 let lastInteractionTime = Date.now();
 let isAutoplayActive = false;
-const fuentesDisponibles = ['Arial', 'Verdana', 'Times New Roman', 'Impact', 'Courier New'];
+const fuentesDisponibles = ['Arial', 'Sharp Grotesk', 'Verdana', 'Impact', 'Courier New'];
 
-// --- 2. CONFIGURACIÓN DEL CANVAS (TEXTURA) ---
+// --- 3. CONFIGURACIÓN DEL CANVAS (TEXTURA) ---
 const textCanvas = document.createElement('canvas');
 const ctx = textCanvas.getContext('2d');
 textCanvas.width = 1024;
@@ -47,10 +65,11 @@ textTexture.anisotropy = 16;
 textTexture.flipY = false;
 
 const texturaBaseImg = new Image();
-texturaBaseImg.src = './textura_tela.png';
+texturaBaseImg.src = './tshit_UVs.jpg';
 
 function actualizarTextura() {
     ctx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+
     if (texturaBaseImg.complete) {
         ctx.drawImage(texturaBaseImg, 0, 0, textCanvas.width, textCanvas.height);
     } else {
@@ -58,34 +77,42 @@ function actualizarTextura() {
         ctx.fillRect(0, 0, textCanvas.width, textCanvas.height);
     }
 
+    const pesoFuente = settings.negrita ? '700' : '500';
+
     ctx.save();
     ctx.translate(settings.posX, settings.posY);
     ctx.scale(settings.escalaX, settings.escalaY);
 
-    const pesoFuente = settings.negrita ? 'Bold' : 'normal';
-    ctx.font = `${pesoFuente} ${settings.tamanioFuente}px ${settings.fuente}`;
     ctx.fillStyle = settings.colorTexto;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    ctx.fillText(settings.texto.toUpperCase(), 0, 0);
-    ctx.restore();
+    ctx.font = `${pesoFuente} ${settings.tamanioNombre}px "${settings.fuente}"`;
+    const anchoNombre = ctx.measureText(settings.nombre.toUpperCase()).width;
 
+    if (anchoNombre > 800) {
+        const factorReduccion = 800 / anchoNombre;
+        ctx.scale(factorReduccion, 1);
+    }
+
+    ctx.fillText(settings.nombre.toUpperCase(), 0, 0);
+
+    ctx.font = `${pesoFuente} ${settings.tamanioNumero}px "${settings.fuente}"`;
+    ctx.fillText(settings.numero, 0, settings.espaciado);
+
+    ctx.restore();
     textTexture.needsUpdate = true;
 }
 texturaBaseImg.onload = actualizarTextura;
 
-// --- 3. ESCENA THREE.JS ---
+// --- 4. ESCENA THREE.JS ---
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(settings.colorFondo); // Color inicial
+scene.background = new THREE.Color(settings.colorFondo);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 0.5, 6);
 
-const renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    preserveDrawingBuffer: true
-});
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -94,7 +121,6 @@ document.getElementById('app').appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-// Resetear inactividad al usar controles
 controls.addEventListener('start', () => {
     lastInteractionTime = Date.now();
     isAutoplayActive = false;
@@ -108,7 +134,7 @@ dirLight.position.set(5, 5, 5);
 scene.add(dirLight);
 
 const loader = new GLTFLoader();
-loader.load('./modelo.glb', (gltf) => {
+loader.load('./tshirt.glb', (gltf) => {
     modelo3D = gltf.scene;
     modelo3D.traverse((child) => {
         if (child.isMesh) {
@@ -120,97 +146,84 @@ loader.load('./modelo.glb', (gltf) => {
         }
     });
     scene.add(modelo3D);
-}, undefined, (error) => console.error("Error al cargar modelo:", error));
+}, undefined, (err) => console.error(err));
 
-// --- 4. FUNCIÓN EXPORTAR ---
 function descargarCaptura() {
     renderer.render(scene, camera);
     const dataURL = renderer.domElement.toDataURL("image/png");
     const link = document.createElement('a');
-    link.download = `captura-diseno-${Date.now()}.png`;
+    link.download = `jersey-${settings.nombre}.png`;
     link.href = dataURL;
     link.click();
 }
 
-// --- 5. INTERFAZ DE USUARIO (GUI COMPLETA) ---
+// --- 5. INTERFAZ DE USUARIO (GUI) ---
 const gui = new GUI();
 
-const fTexto = gui.addFolder('Texto y Estilo');
-fTexto.add(settings, 'texto').name('Contenido').onChange(actualizarTextura);
-fTexto.add(settings, 'fuente', fuentesDisponibles).name('Fuente').onChange(actualizarTextura);
-fTexto.add(settings, 'negrita').name('Negrita (Bold)').onChange(actualizarTextura);
-fTexto.add(settings, 'tamanioFuente', 10, 300).name('Tamaño').onChange(actualizarTextura);
-fTexto.addColor(settings, 'colorTexto').name('Color Texto').onChange(actualizarTextura);
+const fTexto = gui.addFolder('Contenido y Fuente');
+fTexto.add(settings, 'nombre').name('Nombre').onChange(actualizarTextura);
+fTexto.add(settings, 'numero').name('Número').onChange(actualizarTextura);
+fTexto.add(settings, 'fuente', fuentesDisponibles).name('Tipografía').onChange(actualizarTextura);
+fTexto.add(settings, 'negrita').name('Negrita (700/500)').onChange(actualizarTextura);
+fTexto.addColor(settings, 'colorTexto').name('Color Letras').onChange(actualizarTextura);
 
-const fTrans = gui.addFolder('Posición y Escala');
-fTrans.add(settings, 'posX', 0, 1024).name('X (Horizontal)').onChange(actualizarTextura);
-fTrans.add(settings, 'posY', 0, 1024).name('Y (Vertical)').onChange(actualizarTextura);
-fTrans.add(settings, 'escalaX', 0.1, 5).name('Escala X').onChange(actualizarTextura);
-fTrans.add(settings, 'escalaY', 0.1, 5).name('Escala Y').onChange(actualizarTextura);
+const fPos = gui.addFolder('Ubicación y Pivotes');
+fPos.add(settings, 'posicionPredefinida', Object.keys(pivotes)).name('Zona Predefinida').onChange((val) => {
+    settings.posX = pivotes[val].x;
+    settings.posY = pivotes[val].y;
+    gui.controllers.forEach(c => {
+        if (c._name === 'Ajuste X' || c._name === 'Ajuste Y') c.updateDisplay();
+    });
+    actualizarTextura();
+});
+fPos.add(settings, 'posX', 0, 1024).name('Ajuste X').onChange(actualizarTextura);
+fPos.add(settings, 'posY', 0, 1024).name('Ajuste Y').onChange(actualizarTextura);
+fPos.add(settings, 'espaciado', 0, 500).name('Distancia Número').onChange(actualizarTextura);
+
+const fEscala = gui.addFolder('Escala y Tamaño');
+fEscala.add(settings, 'tamanioNombre', 10, 300).name('Tamaño Nombre').onChange(actualizarTextura);
+fEscala.add(settings, 'tamanioNumero', 10, 600).name('Tamaño Número').onChange(actualizarTextura);
+fEscala.add(settings, 'escalaX', 0.1, 5).name('Ancho Extra').onChange(actualizarTextura);
 
 const fEscena = gui.addFolder('Iluminación y Fondo');
-fEscena.add(settings, 'intensidadLuz', 0, 10).name('Brillo').onChange((val) => {
-    ambientLight.intensity = val;
-    dirLight.intensity = val;
+fEscena.add(settings, 'intensidadLuz', 0, 10).name('Brillo').onChange(v => {
+    ambientLight.intensity = v;
+    dirLight.intensity = v;
 });
-fEscena.addColor(settings, 'colorLuz').name('Color Luz').onChange((val) => {
-    ambientLight.color.set(val);
-});
-fEscena.addColor(settings, 'colorFondo').name('Color Fondo').onChange((val) => {
-    scene.background.set(val); // Cambio de color de la escena en tiempo real
-});
+fEscena.addColor(settings, 'colorFondo').name('Color Fondo').onChange(v => scene.background.set(v));
 
 const fAuto = gui.addFolder('Animación (Autoplay)');
 fAuto.add(settings, 'autoplay').name('Activar');
 fAuto.add(settings, 'velocidadRotacion', 0.001, 0.05).name('Velocidad');
 fAuto.add(settings, 'tiempoEspera', 1, 10).name('Espera (seg)');
 
-const fAcciones = gui.addFolder('Acciones');
-fAcciones.add(settings, 'descargarImagen').name('📸 Guardar Imagen');
+gui.add(settings, 'descargarImagen').name('📸 Guardar Imagen');
+gui.add(settings, 'mostrarDebug').name('Ver Debug').onChange(v => textCanvas.style.display = v ? 'block' : 'none');
 
-gui.add(settings, 'mostrarDebug').name('Ver Canvas Debug').onChange(val => {
-    textCanvas.style.display = val ? 'block' : 'none';
-});
-
-// Eventos globales
+// --- 6. RENDER LOOP ---
 window.addEventListener('mousedown', () => {
     lastInteractionTime = Date.now();
     isAutoplayActive = false;
 });
-window.addEventListener('touchstart', () => {
-    lastInteractionTime = Date.now();
-    isAutoplayActive = false;
-});
-
-const inputExterno = document.getElementById('nombreInput');
-if (inputExterno) {
-    inputExterno.addEventListener('input', (e) => {
-        settings.texto = e.target.value;
-        gui.controllers.forEach(c => { if (c._name === 'Contenido') c.updateDisplay(); });
-        actualizarTextura();
-    });
-}
-
-// --- 6. RENDER LOOP ---
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+// Inicialización correcta
+aplicarPivoteInicial();
+
+document.fonts.ready.then(() => {
+    aplicarPivoteInicial();
+    actualizarTextura();
+});
+
 function animate() {
     requestAnimationFrame(animate);
-
-    // Lógica Autoplay
     const secondsInactive = (Date.now() - lastInteractionTime) / 1000;
-    if (settings.autoplay && secondsInactive > settings.tiempoEspera) {
-        isAutoplayActive = true;
-    }
-
-    if (isAutoplayActive && modelo3D) {
-        modelo3D.rotation.y += settings.velocidadRotacion;
-    }
-
+    if (settings.autoplay && secondsInactive > settings.tiempoEspera) isAutoplayActive = true;
+    if (isAutoplayActive && modelo3D) modelo3D.rotation.y += settings.velocidadRotacion;
     controls.update();
     renderer.render(scene, camera);
 }
