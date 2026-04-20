@@ -5,7 +5,7 @@ import GUI from 'lil-gui';
 
 // --- 1. DEFINICIÓN DE PIVOTES (Coordenadas UV) ---
 const pivotes = {
-    'Espalda': { x: 775, y: 280 },
+    'Espalda': { x: 1550, y: 500 },
     'Pecho': { x: 512, y: 350 },
     'Manga Izq': { x: 850, y: 500 },
     'Manga Der': { x: 170, y: 500 }
@@ -17,18 +17,18 @@ const settings = {
     numero: "10",
     fuente: 'Impact',
     negrita: true,
-    tamanioNombre: 65,
-    tamanioNumero: 230,
+    tamanioNombre: 150,
+    tamanioNumero: 355,
     posicionPredefinida: 'Espalda', // Pivote activo por defecto
-    posX: 775, // Inicializado con el valor de Espalda
-    posY: 280, // Inicializado con el valor de Espalda
-    espaciado: 150,
+    posX: 1550, // Inicializado con el valor de Espalda
+    posY: 570, // Inicializado con el valor de Espalda
+    espaciado: 260,
     escalaX: 1,
     escalaY: 1,
-    colorTexto: '#d80000',
-    intensidadLuz: 2.0,
+    colorTexto: '#ffffff',
+    intensidadLuz: 1.2,
     colorLuz: '#ffffff',
-    colorFondo: '#111111',
+    colorFondo: '#101010',
     autoplay: false,
     velocidadRotacion: 0.005,
     tiempoEspera: 3,
@@ -48,24 +48,26 @@ function aplicarPivoteInicial() {
 let modelo3D = null;
 let lastInteractionTime = Date.now();
 let isAutoplayActive = false;
+let generatedTextureSize = 2048;
 const fuentesDisponibles = ['Arial', 'Sharp Grotesk', 'Verdana', 'Impact', 'Courier New'];
 
 // --- 3. CONFIGURACIÓN DEL CANVAS (TEXTURA) ---
 const textCanvas = document.createElement('canvas');
 const ctx = textCanvas.getContext('2d');
-textCanvas.width = 1024;
-textCanvas.height = 1024;
+textCanvas.width = generatedTextureSize;
+textCanvas.height = generatedTextureSize;
 
 textCanvas.id = 'debug-canvas';
 textCanvas.style.cssText = 'position:absolute; bottom:10px; right:10px; width:200px; border:2px solid red; z-index:100; background:#000;';
 document.body.appendChild(textCanvas);
 
 const textTexture = new THREE.CanvasTexture(textCanvas);
+textTexture.colorSpace = THREE.SRGBColorSpace;
 textTexture.anisotropy = 16;
 textTexture.flipY = false;
 
 const texturaBaseImg = new Image();
-texturaBaseImg.src = './tshit_UVs.jpg';
+texturaBaseImg.src = './tshit_UVs2.png';
 
 function actualizarTextura() {
     ctx.clearRect(0, 0, textCanvas.width, textCanvas.height);
@@ -110,7 +112,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(settings.colorFondo);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 0.5, 6);
+camera.position.set(0, 0, -0.75);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -134,18 +136,20 @@ dirLight.position.set(5, 5, 5);
 scene.add(dirLight);
 
 const loader = new GLTFLoader();
-loader.load('./tshirt.glb', (gltf) => {
+loader.load('./TshirtPajaro.glb', (gltf) => {
     modelo3D = gltf.scene;
     modelo3D.traverse((child) => {
         if (child.isMesh) {
             child.material = new THREE.MeshStandardMaterial({
                 map: textTexture,
-                roughness: 0.7,
-                metalness: 0.2
+                roughness: 0.8,
+                metalness: 0,
+                emissive: new THREE.Color(0x000000),
             });
         }
     });
     scene.add(modelo3D);
+    modelo3D.position.set(0, -0.3, 0);
 }, undefined, (err) => console.error(err));
 
 function descargarCaptura() {
@@ -176,8 +180,8 @@ fPos.add(settings, 'posicionPredefinida', Object.keys(pivotes)).name('Zona Prede
     });
     actualizarTextura();
 });
-fPos.add(settings, 'posX', 0, 1024).name('Ajuste X').onChange(actualizarTextura);
-fPos.add(settings, 'posY', 0, 1024).name('Ajuste Y').onChange(actualizarTextura);
+fPos.add(settings, 'posX', 0, generatedTextureSize).name('Ajuste X').onChange(actualizarTextura);
+fPos.add(settings, 'posY', 0, generatedTextureSize).name('Ajuste Y').onChange(actualizarTextura);
 fPos.add(settings, 'espaciado', 0, 500).name('Distancia Número').onChange(actualizarTextura);
 
 const fEscala = gui.addFolder('Escala y Tamaño');
