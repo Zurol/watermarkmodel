@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
 import GUI from 'lil-gui';
 
 // --- 1. DEFINICIÓN DE PIVOTES (Coordenadas UV) ---
@@ -27,8 +28,30 @@ const settings = {
     escalaY: 1,
     colorTexto: '#ffffff',
     intensidadLuz: 1.2,
+    intensidadLuzAmbiente: 0.7,
+    intensidadLuzPrincipal: 2.2,
     colorLuz: '#ffffff',
+    colorLuzAmbiente: '#ffffff',
+    colorLuzPrincipal: '#fff4dd',
+    posicionLuzX: 1.8,
+    posicionLuzY: 2.6,
+    posicionLuzZ: -1.2,
+    distanciaLuz: 8,
+    anguloLuz: 0.65,
+    penumbraLuz: 0.85,
+    decayLuz: 1.4,
     colorFondo: '#101010',
+    colorFondo2: '#2e4366',
+    usarHDRI: true,
+    hdriComoFondo: false,
+    intensidadHDRI: 0.35,
+    exposure: 1,
+    roughness: 0.75,
+    metalness: 0.425,
+    emissiveIntensity: 0,
+    colorEmissive: '#000000',
+    mostrarPiso: true,
+    opacidadSombra: 0.3,
     autoplay: false,
     velocidadRotacion: 0.005,
     tiempoEspera: 3,
@@ -46,6 +69,8 @@ function aplicarPivoteInicial() {
 }
 
 let modelo3D = null;
+let piso = null;
+let hdriEnvMap = null;
 let lastInteractionTime = Date.now();
 let isAutoplayActive = false;
 let generatedTextureSize = 2048;
@@ -109,7 +134,6 @@ texturaBaseImg.onload = actualizarTextura;
 
 // --- 4. ESCENA THREE.JS ---
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(settings.colorFondo);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 0, -0.75);
@@ -118,7 +142,35 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffe
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = settings.exposure;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.getElementById('app').appendChild(renderer.domElement);
+
+const pmremGenerator = new THREE.PMREMGenerator(renderer);
+const gradientCanvas = document.createElement('canvas');
+gradientCanvas.width = 1024;
+gradientCanvas.height = 1024;
+const gradientCtx = gradientCanvas.getContext('2d');
+const gradientTexture = new THREE.CanvasTexture(gradientCanvas);
+gradientTexture.colorSpace = THREE.SRGBColorSpace;
+
+function actualizarFondo() {
+    const gradient = gradientCtx.createLinearGradient(0, 0, 0, gradientCanvas.height);
+    gradient.addColorStop(0, settings.colorFondo2);
+    gradient.addColorStop(1, settings.colorFondo);
+    gradientCtx.fillStyle = gradient;
+    gradientCtx.fillRect(0, 0, gradientCanvas.width, gradientCanvas.height);
+    gradientTexture.needsUpdate = true;
+
+    if (settings.hdriComoFondo && hdriEnvMap) {
+        scene.background = hdriEnvMap;
+        return;
+    }
+
+    scene.background = gradientTexture;
+}
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -128,28 +180,128 @@ controls.addEventListener('start', () => {
     isAutoplayActive = false;
 });
 
-const ambientLight = new THREE.AmbientLight(settings.colorLuz, settings.intensidadLuz);
+const ambientLight = new THREE.AmbientLight(settings.colorLuzAmbiente, settings.intensidadLuzAmbiente);
 scene.add(ambientLight);
 
-const dirLight = new THREE.DirectionalLight(0xffffff, settings.intensidadLuz);
-dirLight.position.set(5, 5, 5);
+const lightTarget = new THREE.Object3D();
+lightTarget.position.set(0, 0, 0);
+scene.add(lightTarget);
+
+const dirLight = new THREE.SpotLight(
+    settings.colorLuzPrincipal,
+    settings.intensidadLuzPrincipal,
+    settings.distanciaLuz,
+    settings.anguloLuz,
+    settings.penumbraLuz,
+    settings.decayLuz
+);
+dirLight.position.set(settings.posicionLuzX, settings.posicionLuzY, settings.posicionLuzZ);
+dirLight.castShadow = true;
+dirLight.target = lightTarget;
+dirLight.shadow.mapSize.set(2048, 2048);
+dirLight.shadow.bias = -0.00015;
+dirLight.shadow.camera.near = 0.1;
+dirLight.shadow.camera.far = 20;
 scene.add(dirLight);
+
+function actualizarLuces() {
+    ambientLight.color.set(settings.colorLuzAmbiente);
+    ambientLight.intensity = settings.intensidadLuzAmbiente;
+
+    dirLight.color.set(settings.colorLuzPrincipal);
+    dirLight.intensity = settings.intensidadLuzPrincipal;
+    dirLight.distance = settings.distanciaLuz;
+    dirLight.angle = settings.anguloLuz;
+    dirLight.penumbra = settings.penumbraLuz;
+    dirLight.decay = settings.decayLuz;
+    dirLight.position.set(settings.posicionLuzX, settings.posicionLuzY, settings.posicionLuzZ);
+}
+
+function crearPiso() {
+    const geometry = new THREE.PlaneGeometry(10, 10);
+    const material = new THREE.ShadowMaterial({
+        color: 0x000000,
+        opacity: settings.opacidadSombra,
+    });
+
+    piso = new THREE.Mesh(geometry, material);
+    piso.rotation.x = -Math.PI / 2;
+    piso.position.y = -1;
+    piso.receiveShadow = true;
+    piso.visible = settings.mostrarPiso;
+    scene.add(piso);
+}
+
+function actualizarPisoSegunModelo() {
+    if (!modelo3D || !piso) return;
+
+    const box = new THREE.Box3().setFromObject(modelo3D);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+
+    piso.position.y = box.min.y - 0.015;
+    piso.scale.setScalar(Math.max(size.x, size.z, 1.5));
+}
+
+function actualizarMaterialesModelo() {
+    if (!modelo3D) return;
+
+    modelo3D.traverse((child) => {
+        if (!child.isMesh || !child.material) return;
+        child.material.roughness = settings.roughness;
+        child.material.metalness = settings.metalness;
+        child.material.envMapIntensity = settings.usarHDRI ? settings.intensidadHDRI : 0;
+        child.material.emissive.set(settings.colorEmissive);
+        child.material.emissiveIntensity = settings.emissiveIntensity;
+        child.material.needsUpdate = true;
+    });
+}
+
+function actualizarEntorno() {
+    scene.environment = settings.usarHDRI ? hdriEnvMap : null;
+    actualizarMaterialesModelo();
+    actualizarFondo();
+}
+
+function actualizarRender() {
+    renderer.toneMappingExposure = settings.exposure;
+}
+
+crearPiso();
+actualizarLuces();
+actualizarFondo();
+actualizarRender();
+
+new RGBELoader().load('./hdri.hdr', (hdrTexture) => {
+    hdrTexture.mapping = THREE.EquirectangularReflectionMapping;
+    hdriEnvMap = pmremGenerator.fromEquirectangular(hdrTexture).texture;
+    hdrTexture.dispose();
+    actualizarEntorno();
+}, undefined, () => {
+    console.warn('No se pudo cargar ./hdri.hdr. El fondo degradado seguirá activo.');
+    actualizarEntorno();
+});
 
 const loader = new GLTFLoader();
 loader.load('./TshirtPajaro.glb', (gltf) => {
     modelo3D = gltf.scene;
     modelo3D.traverse((child) => {
         if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
             child.material = new THREE.MeshStandardMaterial({
                 map: textTexture,
-                roughness: 0.8,
-                metalness: 0,
-                emissive: new THREE.Color(0x000000),
+                roughness: settings.roughness,
+                metalness: settings.metalness,
+                emissive: new THREE.Color(settings.colorEmissive),
+                emissiveIntensity: settings.emissiveIntensity,
+                envMapIntensity: settings.usarHDRI ? settings.intensidadHDRI : 0,
             });
         }
     });
     scene.add(modelo3D);
     modelo3D.position.set(0, -0.3, 0);
+    actualizarPisoSegunModelo();
 }, undefined, (err) => console.error(err));
 
 function descargarCaptura() {
@@ -190,11 +342,37 @@ fEscala.add(settings, 'tamanioNumero', 10, 600).name('Tamaño Número').onChange
 fEscala.add(settings, 'escalaX', 0.1, 5).name('Ancho Extra').onChange(actualizarTextura);
 
 const fEscena = gui.addFolder('Iluminación y Fondo');
-fEscena.add(settings, 'intensidadLuz', 0, 10).name('Brillo').onChange(v => {
-    ambientLight.intensity = v;
-    dirLight.intensity = v;
+fEscena.addColor(settings, 'colorFondo2').name('Gradiente Arriba').onChange(actualizarFondo);
+fEscena.addColor(settings, 'colorFondo').name('Gradiente Abajo').onChange(actualizarFondo);
+fEscena.add(settings, 'usarHDRI').name('Usar HDRI').onChange(actualizarEntorno);
+fEscena.add(settings, 'hdriComoFondo').name('HDRI de Fondo').onChange(actualizarFondo);
+fEscena.add(settings, 'intensidadHDRI', 0, 2).name('Intensidad HDRI').onChange(actualizarMaterialesModelo);
+fEscena.add(settings, 'exposure', 0.1, 2.5).name('Exposure').onChange(actualizarRender);
+fEscena.add(settings, 'mostrarPiso').name('Mostrar Piso').onChange(v => {
+    if (piso) piso.visible = v;
 });
-fEscena.addColor(settings, 'colorFondo').name('Color Fondo').onChange(v => scene.background.set(v));
+fEscena.add(settings, 'opacidadSombra', 0, 1).name('Opacidad Sombra').onChange(v => {
+    if (piso?.material) piso.material.opacity = v;
+});
+
+const fMaterial = gui.addFolder('Material');
+fMaterial.add(settings, 'roughness', 0, 1).name('Roughness').onChange(actualizarMaterialesModelo);
+fMaterial.add(settings, 'metalness', 0, 1).name('Metalness').onChange(actualizarMaterialesModelo);
+fMaterial.add(settings, 'emissiveIntensity', 0, 2).name('Emissive Intensity').onChange(actualizarMaterialesModelo);
+fMaterial.addColor(settings, 'colorEmissive').name('Color Emissive').onChange(actualizarMaterialesModelo);
+
+const fLuces = gui.addFolder('Luces');
+fLuces.addColor(settings, 'colorLuzAmbiente').name('Color Ambiente').onChange(actualizarLuces);
+fLuces.add(settings, 'intensidadLuzAmbiente', 0, 5).name('Intensidad Ambiente').onChange(actualizarLuces);
+fLuces.addColor(settings, 'colorLuzPrincipal').name('Color Principal').onChange(actualizarLuces);
+fLuces.add(settings, 'intensidadLuzPrincipal', 0, 10).name('Intensidad Principal').onChange(actualizarLuces);
+fLuces.add(settings, 'posicionLuzX', -10, 10).name('Luz X').onChange(actualizarLuces);
+fLuces.add(settings, 'posicionLuzY', -10, 10).name('Luz Y').onChange(actualizarLuces);
+fLuces.add(settings, 'posicionLuzZ', -10, 10).name('Luz Z').onChange(actualizarLuces);
+fLuces.add(settings, 'distanciaLuz', 0, 20).name('Distancia').onChange(actualizarLuces);
+fLuces.add(settings, 'anguloLuz', 0.1, 1.5).name('Ángulo').onChange(actualizarLuces);
+fLuces.add(settings, 'penumbraLuz', 0, 1).name('Penumbra').onChange(actualizarLuces);
+fLuces.add(settings, 'decayLuz', 0, 2).name('Decay').onChange(actualizarLuces);
 
 const fAuto = gui.addFolder('Animación (Autoplay)');
 fAuto.add(settings, 'autoplay').name('Activar');
