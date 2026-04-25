@@ -41,7 +41,6 @@ const settings = {
   colorBloqueA: "#d80000",
   colorBloqueB: "#000000",
   mostrarBloques: true,
-  // Iluminación Técnica
   intensidadLuzAmbiente: 3.65,
   intensidadLuzPrincipal: 10,
   colorLuzAmbiente: "#ffffff",
@@ -53,7 +52,6 @@ const settings = {
   anguloLuz: 1.48,
   penumbraLuz: 1.0,
   decayLuz: 1.0,
-  // Escena y HDRI
   colorFondo: "#101010",
   colorFondo2: "#2e4366",
   usarHDRI: true,
@@ -64,10 +62,8 @@ const settings = {
   metalness: 0.425,
   emissiveIntensity: 0,
   colorEmissive: "#000000",
-  // Piso
   mostrarPiso: true,
   opacidadSombra: 0.3,
-  // Video
   grabarVideo: () => prepararGrabacion(),
   descargarImagen: () => descargarCaptura(),
 };
@@ -77,14 +73,12 @@ const textCanvas = document.createElement("canvas");
 const ctx = textCanvas.getContext("2d");
 textCanvas.width = 2048;
 textCanvas.height = 2048;
-textCanvas.style.cssText =
-  "position:absolute; bottom:10px; right:10px; width:200px; border:2px solid red; z-index:100; background:#000; display:none;";
-document.body.appendChild(textCanvas);
 
 const textTexture = new THREE.CanvasTexture(textCanvas);
 textTexture.colorSpace = THREE.SRGBColorSpace;
-textTexture.anisotropy = 16;
 textTexture.flipY = false;
+// MEJORA DE CALIDAD: Anisotropía para que el texto no se vea borroso de lado
+textTexture.anisotropy = 16;
 
 const texturaBaseImg = new Image();
 function cargarNuevaTexturaBase(path) {
@@ -93,8 +87,6 @@ function cargarNuevaTexturaBase(path) {
 
 function actualizarTextura() {
   ctx.clearRect(0, 0, 2048, 2048);
-
-  // 1. ORDEN: COLOR SÓLIDO (FONDO)
   if (settings.mostrarBloques) {
     ctx.fillStyle = settings.colorBloqueB;
     ctx.fillRect(0, 0, 2048, 260);
@@ -103,13 +95,9 @@ function actualizarTextura() {
     ctx.fillStyle = settings.colorBloqueB;
     ctx.fillRect(0, 1625, 2048, 423);
   }
-
-  // 2. ORDEN: TEXTURA PNG (MEDIA)
   if (texturaBaseImg.complete) {
     ctx.drawImage(texturaBaseImg, 0, 0, 2048, 2048);
   }
-
-  // 3. ORDEN: TEXTO (FRENTE)
   const peso = settings.negrita ? "700" : "500";
   ctx.save();
   ctx.translate(settings.posX, settings.posY);
@@ -118,7 +106,6 @@ function actualizarTextura() {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
-  // Lógica de ajuste para nombres largos
   ctx.font = `${peso} ${settings.tamanioNombre}px "${settings.fuente}"`;
   const measure = ctx.measureText(settings.nombre.toUpperCase()).width;
   if (measure > 1600) {
@@ -127,7 +114,6 @@ function actualizarTextura() {
   }
   ctx.fillText(settings.nombre.toUpperCase(), 0, 0);
 
-  // Número
   ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
   ctx.fillText(settings.numero, 0, settings.espaciado);
 
@@ -138,7 +124,7 @@ function actualizarTextura() {
 texturaBaseImg.onload = actualizarTextura;
 cargarNuevaTexturaBase(settings.texturaBase);
 
-// --- 4. ESCENA THREE.JS ---
+// --- 4. ESCENA THREE.JS (CALIDAD MEJORADA) ---
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -151,13 +137,20 @@ camera.position.set(0, 0, -0.75);
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
   preserveDrawingBuffer: true,
+  powerPreference: "high-performance", // Sugiere el uso de GPU potente
 });
-renderer.setSize(window.innerWidth, window.innerHeight);
+
+// Forzamos un pixel ratio de 2 para nitidez máxima en pantallas modernas
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = settings.exposure;
+
+// MEJORA: Sombras suaves de alta calidad
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
 document.getElementById("app").appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -178,6 +171,9 @@ const dirLight = new THREE.SpotLight(
   settings.intensidadLuzPrincipal,
 );
 dirLight.castShadow = true;
+// MEJORA: Resolución de sombra más alta para evitar bordes dentados
+dirLight.shadow.mapSize.width = 2048;
+dirLight.shadow.mapSize.height = 2048;
 dirLight.target = lightTarget;
 scene.add(dirLight);
 
@@ -197,7 +193,6 @@ function actualizarLuces() {
   dirLight.decay = settings.decayLuz;
 }
 
-// Piso con sombras
 let piso;
 function crearPiso() {
   const geometry = new THREE.PlaneGeometry(10, 10);
@@ -213,7 +208,6 @@ function crearPiso() {
   scene.add(piso);
 }
 
-// Fondo Degradado
 const gradCanvas = document.createElement("canvas");
 gradCanvas.width = 1024;
 gradCanvas.height = 1024;
@@ -232,7 +226,6 @@ function actualizarFondo() {
     settings.hdriComoFondo && hdriEnvMap ? hdriEnvMap : gradTexture;
 }
 
-// Materiales y Carga de Modelo
 let modelo3D;
 function actualizarMateriales() {
   if (!modelo3D) return;
@@ -270,19 +263,24 @@ new GLTFLoader().load("./TshirtPajaro.glb", (gltf) => {
   actualizarMateriales();
 });
 
-// --- 5. EXPORTACIÓN Y VIDEO ---
+// --- 5. EXPORTACIÓN Y VIDEO (RESOLUCIÓN 1080x1920) ---
 async function prepararGrabacion() {
-  const width = 720,
-    height = 1280;
+  // CAMBIO: Resolución Full HD Story para Instagram
+  const width = 1080;
+  const height = 1920;
+
   renderer.setSize(width, height);
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
 
   const chunks = [];
+  // Grabamos a 60fps para fluidez total
   const stream = renderer.domElement.captureStream(60);
   const recorder = new MediaRecorder(stream, {
     mimeType: "video/webm; codecs=vp9",
+    videoBitsPerSecond: 8000000, // 8Mbps para evitar artefactos de compresión
   });
+
   recorder.ondataavailable = (e) => chunks.push(e.data);
   recorder.onstop = () => {
     const blob = new Blob(chunks, { type: "video/webm" });
@@ -309,6 +307,7 @@ async function prepararGrabacion() {
   await new Promise((r) => setTimeout(r, 500));
   recorder.stop();
 
+  // Restaurar tamaño original de la pantalla
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -318,7 +317,7 @@ function descargarCaptura() {
   renderer.render(scene, camera);
   const a = document.createElement("a");
   a.download = `jersey-${settings.nombre}.png`;
-  a.href = renderer.domElement.toDataURL();
+  a.href = renderer.domElement.toDataURL("image/png", 1.0); // Calidad máxima
   a.click();
 }
 
@@ -396,7 +395,7 @@ fPiso
   .onChange((v) => (piso.material.opacity = v));
 
 gui.add(settings, "descargarImagen").name("📸 Foto PNG");
-gui.add(settings, "grabarVideo").name("🎬 Video Historia");
+gui.add(settings, "grabarVideo").name("🎬 Video Historia (1080p)");
 
 // --- 7. LOOP ---
 function animate() {
