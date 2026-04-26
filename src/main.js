@@ -4,7 +4,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader";
 import GUI from "lil-gui";
 
-// --- 1. CONFIGURACIÓN DE DATOS ---
+// --- 1. CONFIGURACIÓN Y DATOS ---
 const pivotes = {
   Espalda: { x: 1550, y: 510 },
   Pecho: { x: 1024, y: 700 },
@@ -19,10 +19,9 @@ const texturasDisponibles = [
   "./tshit_UVs4.png",
   "./tshit_UVs5.png",
 ];
-
 const fuentesDisponibles = ["Impact", "Arial", "Verdana", "Courier New"];
 
-// --- 2. ESTADO GLOBAL (SETTINGS) ---
+// --- 2. ESTADO GLOBAL (SETTINGS COMPLETOS) ---
 const settings = {
   nombre: "JUGADOR",
   numero: "10",
@@ -37,10 +36,28 @@ const settings = {
   escalaX: 1,
   escalaY: 1,
   colorTexto: "#ffffff",
-  texturaBase: texturasDisponibles[1],
+  texturaBase: texturasDisponibles[0],
   colorBloqueA: "#d80000",
   colorBloqueB: "#000000",
   mostrarBloques: true,
+  mostrarLogos: true,
+  // Logos con tope de escala 10
+  logo1_x: 700,
+  logo1_y: 630,
+  logo1_esc: 0.8,
+  logo2_x: 1548,
+  logo2_y: 450,
+  logo2_esc: 0.15,
+  logo3_x: 1024,
+  logo3_y: 1100,
+  logo3_esc: 0.2,
+  logo4_x: 1700,
+  logo4_y: 900,
+  logo4_esc: 0.12,
+  logo5_x: 340,
+  logo5_y: 900,
+  logo5_esc: 0.12,
+  // Iluminación
   intensidadLuzAmbiente: 3.65,
   intensidadLuzPrincipal: 10,
   colorLuzAmbiente: "#ffffff",
@@ -52,10 +69,13 @@ const settings = {
   anguloLuz: 1.48,
   penumbraLuz: 1.0,
   decayLuz: 1.0,
+  // Fondo y Escena
+  usarImagenFondo: false,
+  imagenFondoPath: "./FONDOPLAYERA.png",
   colorFondo: "#101010",
   colorFondo2: "#2e4366",
+  // HDRI y Material
   usarHDRI: true,
-  hdriComoFondo: false,
   intensidadHDRI: 0.35,
   exposure: 0.15,
   roughness: 0.8,
@@ -64,40 +84,80 @@ const settings = {
   colorEmissive: "#000000",
   mostrarPiso: true,
   opacidadSombra: 0.3,
+  // Acciones
   grabarVideo: () => prepararGrabacion(),
   descargarImagen: () => descargarCaptura(),
 };
 
-// --- 3. CANVAS Y TEXTURA (2048x2048) ---
+// --- 3. CANVAS DE TEXTURA Y PREVISUALIZACIÓN ---
 const textCanvas = document.createElement("canvas");
 const ctx = textCanvas.getContext("2d");
 textCanvas.width = 2048;
 textCanvas.height = 2048;
 
+// Previsualización Inferior Izquierda
+textCanvas.style.cssText = `
+  position: absolute; bottom: 20px; left: 20px; 
+  width: 256px; height: 256px; 
+  border: 2px solid white; z-index: 1000; background: #000;
+`;
+document.body.appendChild(textCanvas);
+
 const textTexture = new THREE.CanvasTexture(textCanvas);
 textTexture.colorSpace = THREE.SRGBColorSpace;
 textTexture.flipY = false;
-// MEJORA DE CALIDAD: Anisotropía para que el texto no se vea borroso de lado
-textTexture.anisotropy = 16;
 
-const texturaBaseImg = new Image();
-function cargarNuevaTexturaBase(path) {
-  texturaBaseImg.src = path;
+const imgCache = {};
+function cargarImagen(path) {
+  if (!imgCache[path]) {
+    const img = new Image();
+    img.src = path;
+    img.onload = () => actualizarTextura();
+    imgCache[path] = img;
+  }
+  return imgCache[path];
 }
 
 function actualizarTextura() {
   ctx.clearRect(0, 0, 2048, 2048);
+
+  // 1. Color Base
+  ctx.fillStyle = settings.colorBloqueA;
+  ctx.fillRect(0, 0, 2048, 2048);
+
+  // 2. Bloques/Franjas
   if (settings.mostrarBloques) {
     ctx.fillStyle = settings.colorBloqueB;
     ctx.fillRect(0, 0, 2048, 260);
-    ctx.fillStyle = settings.colorBloqueA;
-    ctx.fillRect(0, 260, 2048, 1365);
-    ctx.fillStyle = settings.colorBloqueB;
     ctx.fillRect(0, 1625, 2048, 423);
   }
-  if (texturaBaseImg.complete) {
-    ctx.drawImage(texturaBaseImg, 0, 0, 2048, 2048);
+
+  // 3. PNG de la Playera (Capa superior de detalle)
+  const imgBase = cargarImagen(settings.texturaBase);
+  if (imgBase.complete) {
+    ctx.drawImage(imgBase, 0, 0, 2048, 2048);
   }
+
+  // 4. Logos
+  if (settings.mostrarLogos) {
+    for (let i = 1; i <= 5; i++) {
+      const imgL = cargarImagen(`./Logo${i}.png`);
+      if (imgL.complete) {
+        const esc = settings[`logo${i}_esc`];
+        const w = imgL.width * esc;
+        const h = imgL.height * esc;
+        ctx.drawImage(
+          imgL,
+          settings[`logo${i}_x`] - w / 2,
+          settings[`logo${i}_y`] - h / 2,
+          w,
+          h,
+        );
+      }
+    }
+  }
+
+  // 5. Texto
   const peso = settings.negrita ? "700" : "500";
   ctx.save();
   ctx.translate(settings.posX, settings.posY);
@@ -105,26 +165,16 @@ function actualizarTextura() {
   ctx.fillStyle = settings.colorTexto;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-
   ctx.font = `${peso} ${settings.tamanioNombre}px "${settings.fuente}"`;
-  const measure = ctx.measureText(settings.nombre.toUpperCase()).width;
-  if (measure > 1600) {
-    const scaleFit = 1600 / measure;
-    ctx.scale(scaleFit, 1);
-  }
   ctx.fillText(settings.nombre.toUpperCase(), 0, 0);
-
   ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
   ctx.fillText(settings.numero, 0, settings.espaciado);
-
   ctx.restore();
+
   textTexture.needsUpdate = true;
 }
 
-texturaBaseImg.onload = actualizarTextura;
-cargarNuevaTexturaBase(settings.texturaBase);
-
-// --- 4. ESCENA THREE.JS (CALIDAD MEJORADA) ---
+// --- 4. ESCENA 3D Y RENDERER ---
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -137,44 +187,59 @@ camera.position.set(0, 0, -0.75);
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
   preserveDrawingBuffer: true,
-  powerPreference: "high-performance", // Sugiere el uso de GPU potente
 });
-
-// Forzamos un pixel ratio de 2 para nitidez máxima en pantallas modernas
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = settings.exposure;
-
-// MEJORA: Sombras suaves de alta calidad
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
 document.getElementById("app").appendChild(renderer.domElement);
 
+// Fondo para Imagen
+const bgScene = new THREE.Scene();
+const bgCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+const bgMesh = new THREE.Mesh(
+  new THREE.PlaneGeometry(2, 2),
+  new THREE.MeshBasicMaterial({ depthTest: false }),
+);
+bgScene.add(bgMesh);
+
+function actualizarFondo() {
+  if (settings.usarImagenFondo) {
+    new THREE.TextureLoader().load(settings.imagenFondoPath, (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      bgMesh.material.map = tex;
+      scene.background = null;
+    });
+  } else {
+    const gCanvas = document.createElement("canvas");
+    gCanvas.width = 2;
+    gCanvas.height = 512;
+    const gCtx = gCanvas.getContext("2d");
+    const grd = gCtx.createLinearGradient(0, 0, 0, 512);
+    grd.addColorStop(0, settings.colorFondo2);
+    grd.addColorStop(1, settings.colorFondo);
+    gCtx.fillStyle = grd;
+    gCtx.fillRect(0, 0, 2, 512);
+    scene.background = new THREE.CanvasTexture(gCanvas);
+    bgMesh.material.map = null;
+  }
+}
+
+// --- 5. LUCES, MODELO Y MATERIALES ---
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-// Iluminación
 const ambientLight = new THREE.AmbientLight(
   settings.colorLuzAmbiente,
   settings.intensidadLuzAmbiente,
 );
 scene.add(ambientLight);
-
-const lightTarget = new THREE.Object3D();
-scene.add(lightTarget);
-
 const dirLight = new THREE.SpotLight(
   settings.colorLuzPrincipal,
   settings.intensidadLuzPrincipal,
 );
 dirLight.castShadow = true;
-// MEJORA: Resolución de sombra más alta para evitar bordes dentados
-dirLight.shadow.mapSize.width = 2048;
-dirLight.shadow.mapSize.height = 2048;
-dirLight.target = lightTarget;
 scene.add(dirLight);
 
 function actualizarLuces() {
@@ -187,57 +252,18 @@ function actualizarLuces() {
     settings.posicionLuzY,
     settings.posicionLuzZ,
   );
-  dirLight.distance = settings.distanciaLuz;
-  dirLight.angle = settings.anguloLuz;
-  dirLight.penumbra = settings.penumbraLuz;
-  dirLight.decay = settings.decayLuz;
 }
 
-let piso;
-function crearPiso() {
-  const geometry = new THREE.PlaneGeometry(10, 10);
-  const material = new THREE.ShadowMaterial({
-    color: 0x000000,
-    opacity: settings.opacidadSombra,
-  });
-  piso = new THREE.Mesh(geometry, material);
-  piso.rotation.x = -Math.PI / 2;
-  piso.position.y = -0.9;
-  piso.receiveShadow = true;
-  piso.visible = settings.mostrarPiso;
-  scene.add(piso);
-}
-
-const gradCanvas = document.createElement("canvas");
-gradCanvas.width = 1024;
-gradCanvas.height = 1024;
-const gradCtx = gradCanvas.getContext("2d");
-const gradTexture = new THREE.CanvasTexture(gradCanvas);
-
-let hdriEnvMap = null;
-function actualizarFondo() {
-  const grd = gradCtx.createLinearGradient(0, 0, 0, 1024);
-  grd.addColorStop(0, settings.colorFondo2);
-  grd.addColorStop(1, settings.colorFondo);
-  gradCtx.fillStyle = grd;
-  gradCtx.fillRect(0, 0, 1024, 1024);
-  gradTexture.needsUpdate = true;
-  scene.background =
-    settings.hdriComoFondo && hdriEnvMap ? hdriEnvMap : gradTexture;
-}
-
-let modelo3D;
+let modelo3D, hdriEnvMap;
 function actualizarMateriales() {
   if (!modelo3D) return;
-  modelo3D.traverse((child) => {
-    if (child.isMesh) {
-      child.material.roughness = settings.roughness;
-      child.material.metalness = settings.metalness;
-      child.material.envMapIntensity = settings.usarHDRI
+  modelo3D.traverse((c) => {
+    if (c.isMesh) {
+      c.material.roughness = settings.roughness;
+      c.material.metalness = settings.metalness;
+      c.material.envMapIntensity = settings.usarHDRI
         ? settings.intensidadHDRI
         : 0;
-      child.material.emissive.set(settings.colorEmissive);
-      child.material.emissiveIntensity = settings.emissiveIntensity;
     }
   });
 }
@@ -247,15 +273,15 @@ new RGBELoader().load("./hdri.hdr", (hdr) => {
   hdr.mapping = THREE.EquirectangularReflectionMapping;
   hdriEnvMap = pmremGenerator.fromEquirectangular(hdr).texture;
   scene.environment = settings.usarHDRI ? hdriEnvMap : null;
-  actualizarFondo();
+  actualizarMateriales();
 });
 
 new GLTFLoader().load("./TshirtPajaro.glb", (gltf) => {
   modelo3D = gltf.scene;
-  modelo3D.traverse((child) => {
-    if (child.isMesh) {
-      child.castShadow = child.receiveShadow = true;
-      child.material = new THREE.MeshStandardMaterial({ map: textTexture });
+  modelo3D.traverse((c) => {
+    if (c.isMesh) {
+      c.castShadow = c.receiveShadow = true;
+      c.material = new THREE.MeshStandardMaterial({ map: textTexture });
     }
   });
   scene.add(modelo3D);
@@ -263,147 +289,120 @@ new GLTFLoader().load("./TshirtPajaro.glb", (gltf) => {
   actualizarMateriales();
 });
 
-// --- 5. EXPORTACIÓN Y VIDEO (RESOLUCIÓN 1080x1920) ---
-async function prepararGrabacion() {
-  // CAMBIO: Resolución Full HD Story para Instagram
-  const width = 1080;
-  const height = 1920;
-
-  renderer.setSize(width, height);
-  camera.aspect = width / height;
-  camera.updateProjectionMatrix();
-
-  const chunks = [];
-  // Grabamos a 60fps para fluidez total
-  const stream = renderer.domElement.captureStream(60);
-  const recorder = new MediaRecorder(stream, {
-    mimeType: "video/webm; codecs=vp9",
-    videoBitsPerSecond: 8000000, // 8Mbps para evitar artefactos de compresión
-  });
-
-  recorder.ondataavailable = (e) => chunks.push(e.data);
-  recorder.onstop = () => {
-    const blob = new Blob(chunks, { type: "video/webm" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `story-${settings.nombre}.webm`;
-    a.click();
-  };
-
-  recorder.start();
-  await new Promise((r) => setTimeout(r, 1000));
-  const startRot = modelo3D.rotation.y;
-  const startT = performance.now();
-  await new Promise((res) => {
-    function rot() {
-      const p = Math.min((performance.now() - startT) / 3000, 1);
-      modelo3D.rotation.y = startRot + Math.PI * 2 * p;
-      renderer.render(scene, camera);
-      if (p < 1) requestAnimationFrame(rot);
-      else res();
-    }
-    rot();
-  });
-  await new Promise((r) => setTimeout(r, 500));
-  recorder.stop();
-
-  // Restaurar tamaño original de la pantalla
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-}
-
-function descargarCaptura() {
-  renderer.render(scene, camera);
-  const a = document.createElement("a");
-  a.download = `jersey-${settings.nombre}.png`;
-  a.href = renderer.domElement.toDataURL("image/png", 1.0); // Calidad máxima
-  a.click();
-}
-
-// --- 6. INTERFAZ GUI ---
+// --- 6. GUI (TODOS LOS MENÚS RESTAURADOS) ---
 const gui = new GUI();
 
-const fPrenda = gui.addFolder("Diseño de Prenda");
+// Carpeta 1: Colores y Prenda
+const fPrenda = gui.addFolder("Configuración de Prenda");
 fPrenda
   .add(settings, "texturaBase", texturasDisponibles)
-  .onChange(cargarNuevaTexturaBase);
-fPrenda.add(settings, "mostrarBloques").onChange(actualizarTextura);
-fPrenda.addColor(settings, "colorBloqueA").onChange(actualizarTextura);
-fPrenda.addColor(settings, "colorBloqueB").onChange(actualizarTextura);
+  .name("Textura Base")
+  .onChange(actualizarTextura);
+fPrenda
+  .addColor(settings, "colorBloqueA")
+  .name("Color Principal")
+  .onChange(actualizarTextura);
+fPrenda
+  .addColor(settings, "colorBloqueB")
+  .name("Color Bloques")
+  .onChange(actualizarTextura);
+fPrenda
+  .add(settings, "mostrarBloques")
+  .name("Activar Bloques")
+  .onChange(actualizarTextura);
 
-const fTexto = gui.addFolder("Contenido y Fuentes");
+// Carpeta 2: Logos (Tope Escala 10)
+const fLogos = gui.addFolder("Control de Logos (5)");
+fLogos
+  .add(settings, "mostrarLogos")
+  .name("Ver todos")
+  .onChange(actualizarTextura);
+for (let i = 1; i <= 5; i++) {
+  const s = fLogos.addFolder(`Logo ${i}`);
+  s.add(settings, `logo${i}_x`, 0, 2048).name("X").onChange(actualizarTextura);
+  s.add(settings, `logo${i}_y`, 0, 2048).name("Y").onChange(actualizarTextura);
+  s.add(settings, `logo${i}_esc`, 0.01, 10)
+    .name("Escala")
+    .onChange(actualizarTextura);
+  s.close();
+}
+
+// Carpeta 3: Texto y Pivotes
+const fTexto = gui.addFolder("Personalización Texto");
 fTexto.add(settings, "nombre").onChange(actualizarTextura);
-fTexto.add(settings, "tamanioNombre", 10, 500).onChange(actualizarTextura);
 fTexto.add(settings, "numero").onChange(actualizarTextura);
-fTexto.add(settings, "tamanioNumero", 10, 800).onChange(actualizarTextura);
-fTexto.add(settings, "fuente", fuentesDisponibles).onChange(actualizarTextura);
-fTexto.add(settings, "negrita").onChange(actualizarTextura);
-fTexto.addColor(settings, "colorTexto").onChange(actualizarTextura);
-
-const fPos = gui.addFolder("Ubicación y Pivotes");
-fPos
+fTexto
   .add(settings, "posicionPredefinida", Object.keys(pivotes))
+  .name("Pivote")
   .onChange((v) => {
     settings.posX = pivotes[v].x;
     settings.posY = pivotes[v].y;
     actualizarTextura();
     gui.controllers.forEach((c) => c.updateDisplay());
   });
-fPos.add(settings, "posX", 0, 2048).onChange(actualizarTextura);
-fPos.add(settings, "posY", 0, 2048).onChange(actualizarTextura);
-fPos.add(settings, "espaciado", 0, 800).onChange(actualizarTextura);
-fPos.add(settings, "escalaX", 0.1, 3).onChange(actualizarTextura);
-fPos.add(settings, "escalaY", 0.1, 3).onChange(actualizarTextura);
+fTexto.add(settings, "posX", 0, 2048).onChange(actualizarTextura);
+fTexto.add(settings, "posY", 0, 2048).onChange(actualizarTextura);
 
-const fMaterial = gui.addFolder("Material y HDRI");
-fMaterial.add(settings, "roughness", 0, 1).onChange(actualizarMateriales);
-fMaterial.add(settings, "metalness", 0, 1).onChange(actualizarMateriales);
-fMaterial.add(settings, "usarHDRI").onChange((v) => {
-  scene.environment = v ? hdriEnvMap : null;
-  actualizarMateriales();
-});
-fMaterial.add(settings, "intensidadHDRI", 0, 2).onChange(actualizarMateriales);
-fMaterial.add(settings, "hdriComoFondo").onChange(actualizarFondo);
-fMaterial.addColor(settings, "colorEmissive").onChange(actualizarMateriales);
-fMaterial
-  .add(settings, "emissiveIntensity", 0, 5)
+// Carpeta 4: Material y HDRI
+const fMat = gui.addFolder("Física del Material / HDRI");
+fMat
+  .add(settings, "roughness", 0, 1)
+  .name("Rugosidad")
+  .onChange(actualizarMateriales);
+fMat
+  .add(settings, "metalness", 0, 1)
+  .name("Metalicidad")
+  .onChange(actualizarMateriales);
+fMat
+  .add(settings, "usarHDRI")
+  .name("Activar HDRI")
+  .onChange((v) => {
+    scene.environment = v ? hdriEnvMap : null;
+    actualizarMateriales();
+  });
+fMat
+  .add(settings, "intensidadHDRI", 0, 2)
+  .name("Brillo HDRI")
   .onChange(actualizarMateriales);
 
-const fEscena = gui.addFolder("Iluminación y Cámara");
+// Carpeta 5: Escena e Iluminación
+const fEscena = gui.addFolder("Iluminación y Fondo");
 fEscena
   .add(settings, "exposure", 0, 2)
+  .name("Exposición")
   .onChange((v) => (renderer.toneMappingExposure = v));
-fEscena.addColor(settings, "colorFondo").onChange(actualizarFondo);
-fEscena.addColor(settings, "colorFondo2").onChange(actualizarFondo);
-fEscena.addColor(settings, "colorLuzPrincipal").onChange(actualizarLuces);
+fEscena
+  .add(settings, "usarImagenFondo")
+  .name("Imagen FONDOPLAYERA")
+  .onChange(actualizarFondo);
+fEscena
+  .addColor(settings, "colorFondo")
+  .name("Color de Fondo")
+  .onChange(actualizarFondo);
 fEscena
   .add(settings, "intensidadLuzPrincipal", 0, 20)
+  .name("Luz Focal")
   .onChange(actualizarLuces);
-fEscena.add(settings, "posicionLuzX", -10, 10).onChange(actualizarLuces);
-fEscena.add(settings, "posicionLuzY", -10, 10).onChange(actualizarLuces);
-fEscena.add(settings, "posicionLuzZ", -10, 10).onChange(actualizarLuces);
-fEscena.add(settings, "distanciaLuz", 0.1, 20).onChange(actualizarLuces);
-fEscena.add(settings, "anguloLuz", 0, Math.PI / 2).onChange(actualizarLuces);
-fEscena.add(settings, "penumbraLuz", 0, 1).onChange(actualizarLuces);
-fEscena.add(settings, "decayLuz", 0, 2).onChange(actualizarLuces);
 
-const fPiso = gui.addFolder("Ajustes de Piso");
-fPiso.add(settings, "mostrarPiso").onChange((v) => (piso.visible = v));
-fPiso
-  .add(settings, "opacidadSombra", 0, 1)
-  .onChange((v) => (piso.material.opacity = v));
-
-gui.add(settings, "descargarImagen").name("📸 Foto PNG");
-gui.add(settings, "grabarVideo").name("🎬 Video Historia (1080p)");
+// Botones de Acción
+gui.add(settings, "descargarImagen").name("📸 Capturar PNG");
+gui.add(settings, "grabarVideo").name("🎬 Grabar Story");
 
 // --- 7. LOOP ---
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
-  renderer.render(scene, camera);
+  if (settings.usarImagenFondo) {
+    renderer.autoClear = false;
+    renderer.clear();
+    renderer.render(bgScene, bgCamera);
+    renderer.render(scene, camera);
+    renderer.autoClear = true;
+  } else {
+    renderer.render(scene, camera);
+  }
 }
-crearPiso();
+
 actualizarLuces();
 actualizarFondo();
 animate();
