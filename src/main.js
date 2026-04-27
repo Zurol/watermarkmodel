@@ -19,6 +19,43 @@ const texturasDisponibles = [
   "./tshit_UVs4.png",
   "./tshit_UVs5.png",
 ];
+const paletasDisponibles = [
+  {
+    id: "pink-sky",
+    nombre: "Paleta 1",
+    principal: "#e8528b",
+    secundario: "#92d3e9",
+    terciario: "#633b8f",
+  },
+  {
+    id: "sky-pink",
+    nombre: "Paleta 2",
+    principal: "#92d3e9",
+    secundario: "#e8528b",
+    terciario: "#633b8f",
+  },
+  {
+    id: "berry-flare",
+    nombre: "Berry Flare",
+    principal: "#d12e4f",
+    secundario: "#e8528b",
+    terciario: "#ef7e81",
+  },
+  {
+    id: "field-energy",
+    nombre: "Field Energy",
+    principal: "#33ab58",
+    secundario: "#4fb270",
+    terciario: "#c2d158",
+  },
+  {
+    id: "sunburst",
+    nombre: "Sunburst",
+    principal: "#f49846",
+    secundario: "#feca3c",
+    terciario: "#f9dc62",
+  },
+];
 const fuentesDisponibles = ["Impact", "Arial", "Verdana", "Courier New"];
 
 // --- 2. ESTADO GLOBAL (SETTINGS COMPLETOS) ---
@@ -35,10 +72,22 @@ const settings = {
   espaciado: 260,
   escalaX: 1,
   escalaY: 1,
-  colorTexto: "#ffffff",
+  pechoX: 750,
+  pechoY: 1450,
+  pechoEscala: 0.5,
+  mangaIzqX: pivotes["Manga Izq"].x,
+  mangaIzqY: pivotes["Manga Izq"].y,
+  mangaIzqEscala: 1,
+  mangaDerX: 490,
+  mangaDerY: 1930,
+  mangaDerEscala: 0.4,
+  colorTexto: paletasDisponibles[0].terciario,
   texturaBase: texturasDisponibles[0],
-  colorBloqueA: "#d80000",
-  colorBloqueB: "#000000",
+  paletaColor: paletasDisponibles[0].id,
+  colorBloqueA: paletasDisponibles[0].principal,
+  colorBloqueB: paletasDisponibles[0].secundario,
+  colorBloqueC: paletasDisponibles[0].terciario,
+  modoPivotes: "espalda",
   mostrarBloques: true,
   mostrarLogos: true,
   // Logos con tope de escala 10
@@ -81,14 +130,14 @@ const settings = {
   roughness: 0.8,
   metalness: 0.425,
   outlineActivo: true,
-  outlineColor: "#111111",
-  outlineGrosor: 0.03,
-  outlineIrregularidad: 0.012,
-  outlineEscalaRuido: 7.5,
-  outlineUmbralSilueta: 0.22,
-  outlineSuavidadSilueta: 0.18,
-  outlineReducirAbajo: 0.35,
-  outlineSuavidadAbajo: 0.2,
+  outlineColor: "#ffffff",
+  outlineGrosor: 0.004,
+  outlineIrregularidad: 9,
+  outlineEscalaRuido: 0.5,
+  outlineUmbralSilueta: 0,
+  outlineSuavidadSilueta: 0.01,
+  outlineReducirAbajo: 1,
+  outlineSuavidadAbajo: 0.01,
   emissiveIntensity: 0,
   colorEmissive: "#000000",
   mostrarPiso: true,
@@ -125,6 +174,16 @@ function cargarImagen(path) {
     imgCache[path] = img;
   }
   return imgCache[path];
+}
+
+function aplicarPaleta(idPaleta) {
+  const paleta =
+    paletasDisponibles.find((item) => item.id === idPaleta) || paletasDisponibles[0];
+  settings.paletaColor = paleta.id;
+  settings.colorBloqueA = paleta.principal;
+  settings.colorBloqueB = paleta.secundario;
+  settings.colorBloqueC = paleta.terciario;
+  settings.colorTexto = paleta.terciario;
 }
 
 function actualizarTextura() {
@@ -167,18 +226,56 @@ function actualizarTextura() {
   }
 
   // 5. Texto
+  const gruposPivote = {
+    espalda: ["Espalda"],
+    espalda_manga: ["Espalda", "Manga Der"],
+    espalda_frente: ["Espalda", "Pecho"],
+    espalda_frente_manga: ["Espalda", "Pecho", "Manga Der"],
+  };
+  const pivotesActivos = gruposPivote[settings.modoPivotes] || ["Espalda"];
   const peso = settings.negrita ? "700" : "500";
-  ctx.save();
-  ctx.translate(settings.posX, settings.posY);
-  ctx.scale(settings.escalaX, settings.escalaY);
-  ctx.fillStyle = settings.colorTexto;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = `${peso} ${settings.tamanioNombre}px "${settings.fuente}"`;
-  ctx.fillText(settings.nombre.toUpperCase(), 0, 0);
-  ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
-  ctx.fillText(settings.numero, 0, settings.espaciado);
-  ctx.restore();
+
+  const dibujarNombreNumero = (x, y, escala, incluirNombre) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(escala, escala);
+    ctx.fillStyle = settings.colorBloqueC;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    if (incluirNombre) {
+      ctx.font = `${peso} ${settings.tamanioNombre}px "${settings.fuente}"`;
+      ctx.fillText(settings.nombre.toUpperCase(), 0, 0);
+      ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
+      ctx.fillText(settings.numero, 0, settings.espaciado);
+    } else {
+      ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
+      ctx.fillText(settings.numero, 0, 0);
+    }
+
+    ctx.restore();
+  };
+
+  for (const nombrePivote of pivotesActivos) {
+    if (nombrePivote === "Espalda") {
+      dibujarNombreNumero(settings.posX, settings.posY, settings.escalaX, true);
+      continue;
+    }
+
+    if (nombrePivote === "Pecho") {
+      dibujarNombreNumero(settings.pechoX, settings.pechoY, settings.pechoEscala, false);
+      continue;
+    }
+
+    if (nombrePivote === "Manga Der") {
+      dibujarNombreNumero(
+        settings.mangaDerX,
+        settings.mangaDerY,
+        settings.mangaDerEscala,
+        false,
+      );
+    }
+  }
 
   textTexture.needsUpdate = true;
 }
@@ -209,17 +306,36 @@ const bgScene = new THREE.Scene();
 const bgCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 const bgMesh = new THREE.Mesh(
   new THREE.PlaneGeometry(2, 2),
-  new THREE.MeshBasicMaterial({ depthTest: false }),
+  new THREE.MeshBasicMaterial({ depthTest: false, depthWrite: false }),
 );
 bgScene.add(bgMesh);
 
+const backgroundTextureLoader = new THREE.TextureLoader();
+let fondoImagenTexture = null;
+
 function actualizarFondo() {
   if (settings.usarImagenFondo) {
-    new THREE.TextureLoader().load(settings.imagenFondoPath, (tex) => {
-      tex.colorSpace = THREE.SRGBColorSpace;
-      bgMesh.material.map = tex;
+    if (fondoImagenTexture) {
+      bgMesh.material.map = fondoImagenTexture;
+      bgMesh.material.needsUpdate = true;
       scene.background = null;
-    });
+      return;
+    }
+
+    backgroundTextureLoader.load(
+      settings.imagenFondoPath,
+      (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        fondoImagenTexture = tex;
+        bgMesh.material.map = fondoImagenTexture;
+        bgMesh.material.needsUpdate = true;
+        scene.background = null;
+      },
+      undefined,
+      (error) => {
+        console.error("No se pudo cargar FONDOPLAYERA.png", error);
+      },
+    );
   } else {
     const gCanvas = document.createElement("canvas");
     gCanvas.width = 2;
@@ -232,6 +348,7 @@ function actualizarFondo() {
     gCtx.fillRect(0, 0, 2, 512);
     scene.background = new THREE.CanvasTexture(gCanvas);
     bgMesh.material.map = null;
+    bgMesh.material.needsUpdate = true;
   }
 }
 
@@ -334,7 +451,8 @@ function crearMaterialOutline() {
           downwardSuppress + max(downwardSoftness, 0.0001),
           -objectNormal.y
         );
-        float width = outlineWidth + ((irregular * 2.0) - 1.0) * noiseAmplitude;
+        float width =
+          outlineWidth + ((irregular * 2.0) - 1.0) * (noiseAmplitude * 0.0005);
         width *= rimMask * downwardMask;
         width = max(width, 0.0);
         vec3 displaced = position + objectNormal * width;
@@ -399,6 +517,67 @@ function actualizarOutline() {
   });
 }
 
+function descargarCaptura() {
+  renderFrame();
+  renderer.domElement.toBlob((blob) => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `jersey-${settings.nombre || "preview"}.png`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, "image/png");
+}
+
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordingTimeout = null;
+
+function prepararGrabacion() {
+  if (!("MediaRecorder" in window) || !renderer.domElement.captureStream) {
+    console.error("MediaRecorder no está disponible en este navegador.");
+    return;
+  }
+
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+    return;
+  }
+
+  const stream = renderer.domElement.captureStream(30);
+  recordedChunks = [];
+  const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+    ? "video/webm;codecs=vp9"
+    : "video/webm";
+
+  mediaRecorder = new MediaRecorder(stream, { mimeType });
+
+  mediaRecorder.ondataavailable = (event) => {
+    if (event.data && event.data.size > 0) recordedChunks.push(event.data);
+  };
+
+  mediaRecorder.onstop = () => {
+    if (recordingTimeout) {
+      clearTimeout(recordingTimeout);
+      recordingTimeout = null;
+    }
+
+    const blob = new Blob(recordedChunks, { type: "video/webm" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `story-${settings.nombre || "preview"}.webm`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  mediaRecorder.start();
+  recordingTimeout = setTimeout(() => {
+    if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+  }, 5000);
+}
+
 function actualizarMateriales() {
   if (!modelo3D) return;
   modelo3D.traverse((c) => {
@@ -410,6 +589,20 @@ function actualizarMateriales() {
         : 0;
     }
   });
+}
+
+function renderFrame() {
+  if (settings.usarImagenFondo && bgMesh.material.map) {
+    renderer.autoClear = false;
+    renderer.clear();
+    renderer.render(bgScene, bgCamera);
+    renderer.clearDepth();
+    renderer.render(scene, camera);
+    renderer.autoClear = true;
+    return;
+  }
+
+  renderer.render(scene, camera);
 }
 
 const pmremGenerator = new THREE.PMREMGenerator(renderer);
@@ -453,6 +646,21 @@ fPrenda
   .name("Textura Base")
   .onChange(actualizarTextura);
 fPrenda
+  .add(
+    settings,
+    "paletaColor",
+    paletasDisponibles.reduce((acc, paleta) => {
+      acc[paleta.nombre] = paleta.id;
+      return acc;
+    }, {}),
+  )
+  .name("Paleta")
+  .onChange((value) => {
+    aplicarPaleta(value);
+    syncHtmlPaleta();
+    actualizarTextura();
+  });
+fPrenda
   .addColor(settings, "colorBloqueA")
   .name("Color Principal")
   .onChange(actualizarTextura);
@@ -460,6 +668,13 @@ fPrenda
   .addColor(settings, "colorBloqueB")
   .name("Color Bloques")
   .onChange(actualizarTextura);
+fPrenda
+  .addColor(settings, "colorBloqueC")
+  .name("Color 3")
+  .onChange((value) => {
+    settings.colorTexto = value;
+    actualizarTextura();
+  });
 fPrenda
   .add(settings, "mostrarBloques")
   .name("Activar Bloques")
@@ -496,6 +711,19 @@ fTexto
   });
 fTexto.add(settings, "posX", 0, 2048).onChange(actualizarTextura);
 fTexto.add(settings, "posY", 0, 2048).onChange(actualizarTextura);
+
+const fFrente = gui.addFolder("Frente NÃºmero");
+fFrente.add(settings, "pechoX", 0, 2048).name("X").onChange(actualizarTextura);
+fFrente.add(settings, "pechoY", 0, 2048).name("Y").onChange(actualizarTextura);
+fFrente.add(settings, "pechoEscala", 0.1, 5).name("Escala").onChange(actualizarTextura);
+
+const fMangaDer = gui.addFolder("Manga Der NÃºmero");
+fMangaDer.add(settings, "mangaDerX", 0, 2048).name("X").onChange(actualizarTextura);
+fMangaDer.add(settings, "mangaDerY", 0, 2048).name("Y").onChange(actualizarTextura);
+fMangaDer
+  .add(settings, "mangaDerEscala", 0.1, 5)
+  .name("Escala")
+  .onChange(actualizarTextura);
 
 // Carpeta 4: Material y HDRI
 const fMat = gui.addFolder("Física del Material / HDRI");
@@ -534,11 +762,11 @@ fOutline
   .name("Grosor")
   .onChange(actualizarOutline);
 fOutline
-  .add(settings, "outlineIrregularidad", 0, 0.04)
+  .add(settings, "outlineIrregularidad", 0, 20)
   .name("Irregularidad")
   .onChange(actualizarOutline);
 fOutline
-  .add(settings, "outlineEscalaRuido", 0.5, 20)
+  .add(settings, "outlineEscalaRuido", 0.1, 20)
   .name("Escala Patrón")
   .onChange(actualizarOutline);
 fOutline
@@ -580,21 +808,112 @@ fEscena
 gui.add(settings, "descargarImagen").name("📸 Capturar PNG");
 gui.add(settings, "grabarVideo").name("🎬 Grabar Story");
 
+const htmlControls = {
+  nombre: document.getElementById("control-nombre"),
+  numero: document.getElementById("control-numero"),
+  colorOutline: document.getElementById("control-color-outline"),
+  capturar: document.getElementById("control-capturar"),
+  story: document.getElementById("control-story"),
+  paletas: document.getElementById("control-paletas"),
+  texturas: document.querySelectorAll('input[name="textura-base"]'),
+  pivotes: document.querySelectorAll('input[name="modo-pivotes"]'),
+};
+
+function bindHtmlControls() {
+  if (!htmlControls.nombre) return;
+
+  htmlControls.nombre.value = settings.nombre;
+  htmlControls.numero.value = settings.numero;
+  htmlControls.colorOutline.value = settings.outlineColor;
+
+  htmlControls.nombre.addEventListener("input", (event) => {
+    settings.nombre = event.target.value;
+    actualizarTextura();
+  });
+
+  htmlControls.numero.addEventListener("input", (event) => {
+    settings.numero = event.target.value;
+    actualizarTextura();
+  });
+
+  htmlControls.colorOutline.addEventListener("input", (event) => {
+    settings.outlineColor = event.target.value;
+    actualizarOutline();
+  });
+
+  if (htmlControls.paletas) {
+    htmlControls.paletas.innerHTML = "";
+    for (const paleta of paletasDisponibles) {
+      const option = document.createElement("label");
+      option.className = "palette-option";
+      option.innerHTML = `
+        <input type="radio" name="paleta-color" value="${paleta.id}">
+        <span class="palette-label">${paleta.nombre}</span>
+        <span class="palette-swatch">
+          <span style="background:${paleta.principal}"></span>
+          <span style="background:${paleta.secundario}"></span>
+          <span style="background:${paleta.terciario}"></span>
+        </span>
+      `;
+
+      const input = option.querySelector('input[name="paleta-color"]');
+      input.checked = paleta.id === settings.paletaColor;
+      input.addEventListener("change", (event) => {
+        if (!event.target.checked) return;
+        aplicarPaleta(event.target.value);
+        actualizarTextura();
+      });
+
+      htmlControls.paletas.appendChild(option);
+    }
+  }
+
+  htmlControls.texturas.forEach((input) => {
+    input.checked = input.value === settings.texturaBase;
+    input.addEventListener("change", (event) => {
+      if (!event.target.checked) return;
+      settings.texturaBase = event.target.value;
+      actualizarTextura();
+    });
+  });
+
+  htmlControls.pivotes.forEach((input) => {
+    input.checked = input.value === settings.modoPivotes;
+    input.addEventListener("change", (event) => {
+      if (!event.target.checked) return;
+      settings.modoPivotes = event.target.value;
+      actualizarTextura();
+    });
+  });
+
+  htmlControls.capturar?.addEventListener("click", () => descargarCaptura());
+  htmlControls.story?.addEventListener("click", () => prepararGrabacion());
+}
+
+function syncHtmlPaleta() {
+  const radios = document.querySelectorAll('input[name="paleta-color"]');
+  radios.forEach((radio) => {
+    radio.checked = radio.value === settings.paletaColor;
+  });
+}
+
 // --- 7. LOOP ---
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
-  if (settings.usarImagenFondo) {
-    renderer.autoClear = false;
-    renderer.clear();
-    renderer.render(bgScene, bgCamera);
-    renderer.render(scene, camera);
-    renderer.autoClear = true;
-  } else {
-    renderer.render(scene, camera);
-  }
+  renderFrame();
 }
 
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+bindHtmlControls();
+syncHtmlPaleta();
+actualizarTextura();
+actualizarOutline();
 actualizarLuces();
 actualizarFondo();
 animate();
