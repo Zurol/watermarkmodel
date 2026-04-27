@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader";
+import { HDRLoader } from "three/examples/jsm/loaders/HDRLoader";
 import GUI from "lil-gui";
 
 // --- 1. CONFIGURACIÓN Y DATOS ---
@@ -80,6 +80,11 @@ const settings = {
   exposure: 0.15,
   roughness: 0.8,
   metalness: 0.425,
+  outlineActivo: true,
+  outlineColor: "#111111",
+  outlineGrosor: 0.03,
+  outlineIrregularidad: 0.012,
+  outlineEscalaRuido: 7.5,
   emissiveIntensity: 0,
   colorEmissive: "#000000",
   mostrarPiso: true,
@@ -255,10 +260,109 @@ function actualizarLuces() {
 }
 
 let modelo3D, hdriEnvMap;
+const outlineMaterials = [];
+
+function crearMaterialOutline() {
+  const material = new THREE.ShaderMaterial({
+    uniforms: {
+      outlineColor: { value: new THREE.Color(settings.outlineColor) },
+      outlineWidth: { value: settings.outlineGrosor },
+      noiseAmplitude: { value: settings.outlineIrregularidad },
+      noiseScale: { value: settings.outlineEscalaRuido },
+    },
+    vertexShader: `
+      uniform float outlineWidth;
+      uniform float noiseAmplitude;
+      uniform float noiseScale;
+      varying float vNoise;
+
+      float hash(vec3 p) {
+        return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453123);
+      }
+
+      float noise3d(vec3 p) {
+        vec3 i = floor(p);
+        vec3 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+
+        float n000 = hash(i + vec3(0.0, 0.0, 0.0));
+        float n100 = hash(i + vec3(1.0, 0.0, 0.0));
+        float n010 = hash(i + vec3(0.0, 1.0, 0.0));
+        float n110 = hash(i + vec3(1.0, 1.0, 0.0));
+        float n001 = hash(i + vec3(0.0, 0.0, 1.0));
+        float n101 = hash(i + vec3(1.0, 0.0, 1.0));
+        float n011 = hash(i + vec3(0.0, 1.0, 1.0));
+        float n111 = hash(i + vec3(1.0, 1.0, 1.0));
+
+        float nx00 = mix(n000, n100, f.x);
+        float nx10 = mix(n010, n110, f.x);
+        float nx01 = mix(n001, n101, f.x);
+        float nx11 = mix(n011, n111, f.x);
+        float nxy0 = mix(nx00, nx10, f.y);
+        float nxy1 = mix(nx01, nx11, f.y);
+        return mix(nxy0, nxy1, f.z);
+      }
+
+      void main() {
+        vec3 objectNormal = normalize(normal);
+        float irregular = noise3d(position * noiseScale);
+        float width = outlineWidth + ((irregular * 2.0) - 1.0) * noiseAmplitude;
+        width = max(width, 0.0005);
+        vec3 displaced = position + objectNormal * width;
+        vNoise = irregular;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 outlineColor;
+      varying float vNoise;
+
+      void main() {
+        float shade = mix(0.9, 1.05, vNoise);
+        gl_FragColor = vec4(outlineColor * shade, 1.0);
+      }
+    `,
+    side: THREE.BackSide,
+    transparent: false,
+    depthWrite: true,
+  });
+
+  outlineMaterials.push(material);
+  return material;
+}
+
+function crearOutlineMesh(mesh) {
+  const outlineMesh = new THREE.Mesh(mesh.geometry, crearMaterialOutline());
+  outlineMesh.name = `${mesh.name || "mesh"}_outline`;
+  outlineMesh.renderOrder = -1;
+  outlineMesh.visible = settings.outlineActivo;
+  outlineMesh.frustumCulled = false;
+  outlineMesh.castShadow = false;
+  outlineMesh.receiveShadow = false;
+  outlineMesh.userData.isOutlineMesh = true;
+  return outlineMesh;
+}
+
+function actualizarOutline() {
+  for (const material of outlineMaterials) {
+    material.uniforms.outlineColor.value.set(settings.outlineColor);
+    material.uniforms.outlineWidth.value = settings.outlineGrosor;
+    material.uniforms.noiseAmplitude.value = settings.outlineIrregularidad;
+    material.uniforms.noiseScale.value = settings.outlineEscalaRuido;
+  }
+
+  if (!modelo3D) return;
+  modelo3D.traverse((c) => {
+    if (!c.isMesh) return;
+    const outlineMesh = c.children.find((child) => child.userData?.isOutlineMesh);
+    if (outlineMesh) outlineMesh.visible = settings.outlineActivo;
+  });
+}
+
 function actualizarMateriales() {
   if (!modelo3D) return;
   modelo3D.traverse((c) => {
-    if (c.isMesh) {
+    if (c.isMesh && !c.userData?.isOutlineMesh) {
       c.material.roughness = settings.roughness;
       c.material.metalness = settings.metalness;
       c.material.envMapIntensity = settings.usarHDRI
@@ -269,24 +373,34 @@ function actualizarMateriales() {
 }
 
 const pmremGenerator = new THREE.PMREMGenerator(renderer);
-new RGBELoader().load("./hdri.hdr", (hdr) => {
+new HDRLoader().load("./hdri.hdr", (hdr) => {
   hdr.mapping = THREE.EquirectangularReflectionMapping;
   hdriEnvMap = pmremGenerator.fromEquirectangular(hdr).texture;
+  hdr.dispose();
   scene.environment = settings.usarHDRI ? hdriEnvMap : null;
   actualizarMateriales();
 });
 
 new GLTFLoader().load("./TshirtPajaro.glb", (gltf) => {
   modelo3D = gltf.scene;
+  const modelMeshes = [];
+
   modelo3D.traverse((c) => {
-    if (c.isMesh) {
+    if (c.isMesh && !c.userData?.isOutlineMesh) {
       c.castShadow = c.receiveShadow = true;
       c.material = new THREE.MeshStandardMaterial({ map: textTexture });
+      modelMeshes.push(c);
     }
   });
+
+  for (const mesh of modelMeshes) {
+    mesh.add(crearOutlineMesh(mesh));
+  }
+
   scene.add(modelo3D);
   modelo3D.position.set(0, -0.3, 0);
   actualizarMateriales();
+  actualizarOutline();
 });
 
 // --- 6. GUI (TODOS LOS MENÚS RESTAURADOS) ---
@@ -366,6 +480,28 @@ fMat
   .onChange(actualizarMateriales);
 
 // Carpeta 5: Escena e Iluminación
+const fOutline = gui.addFolder("Contorno Toon");
+fOutline
+  .add(settings, "outlineActivo")
+  .name("Activar Contorno")
+  .onChange(actualizarOutline);
+fOutline
+  .addColor(settings, "outlineColor")
+  .name("Color Contorno")
+  .onChange(actualizarOutline);
+fOutline
+  .add(settings, "outlineGrosor", 0.001, 0.08)
+  .name("Grosor")
+  .onChange(actualizarOutline);
+fOutline
+  .add(settings, "outlineIrregularidad", 0, 0.04)
+  .name("Irregularidad")
+  .onChange(actualizarOutline);
+fOutline
+  .add(settings, "outlineEscalaRuido", 0.5, 20)
+  .name("Escala Patrón")
+  .onChange(actualizarOutline);
+
 const fEscena = gui.addFolder("Iluminación y Fondo");
 fEscena
   .add(settings, "exposure", 0, 2)
