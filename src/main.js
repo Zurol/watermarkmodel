@@ -85,6 +85,10 @@ const settings = {
   outlineGrosor: 0.03,
   outlineIrregularidad: 0.012,
   outlineEscalaRuido: 7.5,
+  outlineUmbralSilueta: 0.22,
+  outlineSuavidadSilueta: 0.18,
+  outlineReducirAbajo: 0.35,
+  outlineSuavidadAbajo: 0.2,
   emissiveIntensity: 0,
   colorEmissive: "#000000",
   mostrarPiso: true,
@@ -269,11 +273,21 @@ function crearMaterialOutline() {
       outlineWidth: { value: settings.outlineGrosor },
       noiseAmplitude: { value: settings.outlineIrregularidad },
       noiseScale: { value: settings.outlineEscalaRuido },
+      silhouetteThreshold: { value: settings.outlineUmbralSilueta },
+      silhouetteSoftness: { value: settings.outlineSuavidadSilueta },
+      downwardSuppress: { value: settings.outlineReducirAbajo },
+      downwardSoftness: { value: settings.outlineSuavidadAbajo },
     },
     vertexShader: `
       uniform float outlineWidth;
       uniform float noiseAmplitude;
       uniform float noiseScale;
+      uniform float silhouetteThreshold;
+      uniform float silhouetteSoftness;
+      uniform float downwardSuppress;
+      uniform float downwardSoftness;
+      varying float vRim;
+      varying float vDownwardMask;
       varying float vNoise;
 
       float hash(vec3 p) {
@@ -306,24 +320,46 @@ function crearMaterialOutline() {
       void main() {
         vec3 objectNormal = normalize(normal);
         float irregular = noise3d(position * noiseScale);
+        vec3 viewNormal = normalize(normalMatrix * normal);
+        vec4 baseMvPosition = modelViewMatrix * vec4(position, 1.0);
+        vec3 viewDir = normalize(-baseMvPosition.xyz);
+        float rim = 1.0 - abs(dot(viewNormal, viewDir));
+        float rimMask = smoothstep(
+          silhouetteThreshold,
+          silhouetteThreshold + max(silhouetteSoftness, 0.0001),
+          rim
+        );
+        float downwardMask = 1.0 - smoothstep(
+          downwardSuppress - max(downwardSoftness, 0.0001),
+          downwardSuppress + max(downwardSoftness, 0.0001),
+          -objectNormal.y
+        );
         float width = outlineWidth + ((irregular * 2.0) - 1.0) * noiseAmplitude;
-        width = max(width, 0.0005);
+        width *= rimMask * downwardMask;
+        width = max(width, 0.0);
         vec3 displaced = position + objectNormal * width;
+        vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
+        vRim = rimMask;
+        vDownwardMask = downwardMask;
         vNoise = irregular;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
+        gl_Position = projectionMatrix * mvPosition;
       }
     `,
     fragmentShader: `
       uniform vec3 outlineColor;
+      varying float vRim;
+      varying float vDownwardMask;
       varying float vNoise;
 
       void main() {
+        float rimMask = vRim * vDownwardMask;
+        if (rimMask <= 0.001) discard;
         float shade = mix(0.9, 1.05, vNoise);
-        gl_FragColor = vec4(outlineColor * shade, 1.0);
+        gl_FragColor = vec4(outlineColor * shade, rimMask);
       }
     `,
     side: THREE.BackSide,
-    transparent: false,
+    transparent: true,
     depthWrite: true,
   });
 
@@ -349,6 +385,10 @@ function actualizarOutline() {
     material.uniforms.outlineWidth.value = settings.outlineGrosor;
     material.uniforms.noiseAmplitude.value = settings.outlineIrregularidad;
     material.uniforms.noiseScale.value = settings.outlineEscalaRuido;
+    material.uniforms.silhouetteThreshold.value = settings.outlineUmbralSilueta;
+    material.uniforms.silhouetteSoftness.value = settings.outlineSuavidadSilueta;
+    material.uniforms.downwardSuppress.value = settings.outlineReducirAbajo;
+    material.uniforms.downwardSoftness.value = settings.outlineSuavidadAbajo;
   }
 
   if (!modelo3D) return;
@@ -500,6 +540,22 @@ fOutline
 fOutline
   .add(settings, "outlineEscalaRuido", 0.5, 20)
   .name("Escala Patrón")
+  .onChange(actualizarOutline);
+fOutline
+  .add(settings, "outlineUmbralSilueta", 0, 0.8)
+  .name("Limpieza Interna")
+  .onChange(actualizarOutline);
+fOutline
+  .add(settings, "outlineSuavidadSilueta", 0.01, 0.5)
+  .name("Suavidad Borde")
+  .onChange(actualizarOutline);
+fOutline
+  .add(settings, "outlineReducirAbajo", 0, 1)
+  .name("Limpieza Axila")
+  .onChange(actualizarOutline);
+fOutline
+  .add(settings, "outlineSuavidadAbajo", 0.01, 0.5)
+  .name("Suavidad Axila")
   .onChange(actualizarOutline);
 
 const fEscena = gui.addFolder("Iluminación y Fondo");
