@@ -20,7 +20,7 @@ body {
 #control-panel {
   position: fixed;
   top: 16px;
-  left: 16px;
+  right: 0px;
   z-index: 1200;
   width: min(340px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
@@ -171,6 +171,15 @@ fieldset.field label {
   border: 1px solid rgba(255, 255, 255, 0.18) !important;
   background: rgba(7, 9, 14, 0.92) !important;
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3);
+}
+
+span.palette-swatch {
+    height: 50px;
+    width: 120px;
+}
+
+span.palette-swatch span {
+    display: list-item;
 }
 
 @media (max-width: 900px) {

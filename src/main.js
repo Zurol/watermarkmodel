@@ -1,1140 +1,1172 @@
-import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { HDRLoader } from "three/examples/jsm/loaders/HDRLoader";
-import GUI from "lil-gui";
+  import * as THREE from "three";
+  import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+  import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+  import { HDRLoader } from "three/examples/jsm/loaders/HDRLoader";
+  import GUI from "lil-gui";
 
-let textureVersion = 0;
+  let textureVersion = 0;
 
-// --- 1. CONFIGURACIÓN Y DATOS ---
-const pivotes = {
-  Espalda: { x: 1550, y: 510 },
-  Pecho: { x: 1024, y: 700 },
-  "Manga Izq": { x: 1700, y: 1000 },
-  "Manga Der": { x: 340, y: 1000 },
-};
+  // --- 1. CONFIGURACIÓN Y DATOS ---
+  const pivotes = {
+    Espalda: { x: 1550, y: 510 },
+    Pecho: { x: 1024, y: 700 },
+    "Manga Izq": { x: 1700, y: 1000 },
+    "Manga Der": { x: 340, y: 1000 },
+  };
 
-const texturasDisponibles = [
-  "./pattern1.svg",
-  "./pattern2.svg",
-  "./pattern3.svg",
-  "./pattern4.svg",
-  "./pattern5.svg",
-];
+  const texturasDisponibles = [
+    "./pattern1.svg",
+    "./pattern2.svg",
+    "./pattern3.svg",
+    "./pattern4.svg",
+    "./pattern5.svg",
+  ];
 
-const paletasDisponibles = [
-  {
-    id: "pink-breeze",
-    nombre: "Pink Breeze",
-    principal: "#e8528b",
-    secundario: "#92d3e9",
-    terciario: "#ffffff",
-  },
-  {
-    id: "sky-breeze",
-    nombre: "Sky Breeze",
-    principal: "#92d3e9",
-    secundario: "#e8528b",
-    terciario: "#ffffff",
-  },
-  {
-    id: "berry-flare",
-    nombre: "Berry Flare",
-    principal: "#d12e4f",
-    secundario: "#ffdd57",
-    terciario: "#ffdd57",
-  },
-  {
-    id: "green-harvest",
-    nombre: "Green Harvest",
-    principal: "#33ab58",
-    secundario: "#4fb270",
-    terciario: "#ffcb24",
-  },
-  {
-    id: "sunburst-gold",
-    nombre: "Sunburst Gold",
-    principal: "#f49846",
-    secundario: "#feca3c",
-    terciario: "#f9dc62",
-  },
-  {
-    id: "violet-pulse",
-    nombre: "Violet Pulse",
-    principal: "#b26fb1",
-    secundario: "#6f3893",
-    terciario: "#ffffff",
-  },
-  {
-    id: "deep-ocean",
-    nombre: "Deep Ocean",
-    principal: "#006bb7",
-    secundario: "#343390",
-    terciario: "#f9dc62",
-  },
-  {
-    id: "lime-light",
-    nombre: "Lime Light",
-    principal: "#bdd24c",
-    secundario: "#ffffff",
-    terciario: "#ffffff",
-  },
-  {
-    id: "crimson-night",
-    nombre: "Crimson Night",
-    principal: "#f32a4f",
-    secundario: "#343390",
-    terciario: "#f9dc62",
-  },
-  {
-    id: "gold-accent",
-    nombre: "Gold Accent",
-    principal: "#ffdd57",
-    secundario: "#d12e4f",
-    terciario: "#ffffff",
-  },
-  {
-    id: "ocean-light",
-    nombre: "Ocean Light",
-    principal: "#006bb7",
-    secundario: "#92d3e9",
-    terciario: "#ffffff",
-  },
-  {
-    id: "sunset-pop",
-    nombre: "Sunset Pop",
-    principal: "#f32a4f",
-    secundario: "#f49846",
-    terciario: "#feca3c",
-  },
-  {
-    id: "mint-fresh",
-    nombre: "Mint Fresh",
-    principal: "#4fb270",
-    secundario: "#bdd24c",
-    terciario: "#ffffff",
-  },
-  {
-    id: "royal-striker",
-    nombre: "Royal Striker",
-    principal: "#006bb7",
-    secundario: "#ffffff",
-    terciario: "#feca3c",
-  },
-  {
-    id: "crimson-flash",
-    nombre: "Crimson Flash",
-    principal: "#f32a4f",
-    secundario: "#ffffff",
-    terciario: "#343390",
-  },
-  {
-    id: "golden-attack",
-    nombre: "Golden Attack",
-    principal: "#ffdd57",
-    secundario: "#d12e4f",
-    terciario: "#343390",
-  },
-  {
-    id: "emerald-core",
-    nombre: "Emerald Core",
-    principal: "#33ab58",
-    secundario: "#ffffff",
-    terciario: "#feca3c",
-  },
-  {
-    id: "violet-storm",
-    nombre: "Violet Storm",
-    principal: "#6f3893",
-    secundario: "#b26fb1",
-    terciario: "#ffffff",
-  },
-  {
-    id: "sunfire-kit",
-    nombre: "Sunfire Kit",
-    principal: "#f49846",
-    secundario: "#f32a4f",
-    terciario: "#ffffff",
-  },
-  {
-    id: "skyline-united",
-    nombre: "Skyline United",
-    principal: "#92d3e9",
-    secundario: "#006bb7",
-    terciario: "#ffffff",
-  },
-  {
-    id: "lime-strike",
-    nombre: "Lime Strike",
-    principal: "#bdd24c",
-    secundario: "#33ab58",
-    terciario: "#ffffff",
-  },
-  {
-    id: "night-playmaker",
-    nombre: "Night Playmaker",
-    principal: "#343390",
-    secundario: "#f32a4f",
-    terciario: "#ffffff",
-  },
-  {
-    id: "rose-legend",
-    nombre: "Rose Legend",
-    principal: "#e8528b",
-    secundario: "#ffffff",
-    terciario: "#343390",
-  },
-];
+  const paletasDisponibles = [
+    {
+      id: "pink-breeze",
+      nombre: "Pink Breeze",
+      principal: "#e8528b",
+      secundario: "#92d3e9",
+      terciario: "#ffffff",
+    },
+    {
+      id: "sky-breeze",
+      nombre: "Sky Breeze",
+      principal: "#92d3e9",
+      secundario: "#e8528b",
+      terciario: "#ffffff",
+    },
+    {
+      id: "berry-flare",
+      nombre: "Berry Flare",
+      principal: "#d12e4f",
+      secundario: "#ffdd57",
+      terciario: "#ffdd57",
+    },
+    {
+      id: "green-harvest",
+      nombre: "Green Harvest",
+      principal: "#33ab58",
+      secundario: "#4fb270",
+      terciario: "#ffcb24",
+    },
+    {
+      id: "sunburst-gold",
+      nombre: "Sunburst Gold",
+      principal: "#f49846",
+      secundario: "#feca3c",
+      terciario: "#f9dc62",
+    },
+    {
+      id: "violet-pulse",
+      nombre: "Violet Pulse",
+      principal: "#b26fb1",
+      secundario: "#6f3893",
+      terciario: "#ffffff",
+    },
+    {
+      id: "deep-ocean",
+      nombre: "Deep Ocean",
+      principal: "#006bb7",
+      secundario: "#343390",
+      terciario: "#f9dc62",
+    },
+    {
+      id: "lime-light",
+      nombre: "Lime Light",
+      principal: "#bdd24c",
+      secundario: "#ffffff",
+      terciario: "#ffffff",
+    },
+    {
+      id: "crimson-night",
+      nombre: "Crimson Night",
+      principal: "#f32a4f",
+      secundario: "#343390",
+      terciario: "#f9dc62",
+    },
+    {
+      id: "gold-accent",
+      nombre: "Gold Accent",
+      principal: "#ffdd57",
+      secundario: "#d12e4f",
+      terciario: "#ffffff",
+    },
+    {
+      id: "ocean-light",
+      nombre: "Ocean Light",
+      principal: "#006bb7",
+      secundario: "#92d3e9",
+      terciario: "#ffffff",
+    },
+    {
+      id: "sunset-pop",
+      nombre: "Sunset Pop",
+      principal: "#f32a4f",
+      secundario: "#f49846",
+      terciario: "#feca3c",
+    },
+    {
+      id: "mint-fresh",
+      nombre: "Mint Fresh",
+      principal: "#4fb270",
+      secundario: "#bdd24c",
+      terciario: "#ffffff",
+    },
+    {
+      id: "royal-striker",
+      nombre: "Royal Striker",
+      principal: "#006bb7",
+      secundario: "#ffffff",
+      terciario: "#feca3c",
+    },
+    {
+      id: "crimson-flash",
+      nombre: "Crimson Flash",
+      principal: "#f32a4f",
+      secundario: "#ffffff",
+      terciario: "#343390",
+    },
+    {
+      id: "golden-attack",
+      nombre: "Golden Attack",
+      principal: "#ffdd57",
+      secundario: "#d12e4f",
+      terciario: "#343390",
+    },
+    {
+      id: "emerald-core",
+      nombre: "Emerald Core",
+      principal: "#33ab58",
+      secundario: "#ffffff",
+      terciario: "#feca3c",
+    },
+    {
+      id: "violet-storm",
+      nombre: "Violet Storm",
+      principal: "#6f3893",
+      secundario: "#b26fb1",
+      terciario: "#ffffff",
+    },
+    {
+      id: "sunfire-kit",
+      nombre: "Sunfire Kit",
+      principal: "#f49846",
+      secundario: "#f32a4f",
+      terciario: "#ffffff",
+    },
+    {
+      id: "skyline-united",
+      nombre: "Skyline United",
+      principal: "#92d3e9",
+      secundario: "#006bb7",
+      terciario: "#ffffff",
+    },
+    {
+      id: "lime-strike",
+      nombre: "Lime Strike",
+      principal: "#bdd24c",
+      secundario: "#33ab58",
+      terciario: "#ffffff",
+    },
+    {
+      id: "night-playmaker",
+      nombre: "Night Playmaker",
+      principal: "#343390",
+      secundario: "#f32a4f",
+      terciario: "#ffffff",
+    },
+    {
+      id: "rose-legend",
+      nombre: "Rose Legend",
+      principal: "#e8528b",
+      secundario: "#ffffff",
+      terciario: "#343390",
+    },
+  ];
 
-const fuentesDisponibles = ["Impact", "Arial", "Verdana", "Courier New"];
+  const fuentesDisponibles = ["Impact", "Arial", "Verdana", "Courier New"];
 
-// --- 2. ESTADO GLOBAL (SETTINGS COMPLETOS) ---
-const settings = {
-  nombre: "JUGADOR",
-  numero: "10",
-  fuente: "Impact",
-  negrita: false,
-  tamanioNombre: 175,
-  tamanioNumero: 355,
-  posicionPredefinida: "Espalda",
-  posX: 1550,
-  posY: 510,
-  espaciado: 260,
-  escalaX: 1,
-  escalaY: 1,
-  pechoX: 750,
-  pechoY: 1450,
-  pechoEscala: 0.5,
-  mangaIzqX: pivotes["Manga Izq"].x,
-  mangaIzqY: pivotes["Manga Izq"].y,
-  mangaIzqEscala: 1,
-  mangaDerX: 490,
-  mangaDerY: 1930,
-  mangaDerEscala: 0.4,
-  colorTexto: paletasDisponibles[0].terciario,
-  texturaBase: texturasDisponibles[0],
-  paletaColor: paletasDisponibles[0].id,
-  colorBloqueA: paletasDisponibles[0].principal,
-  colorBloqueB: paletasDisponibles[0].secundario,
-  colorBloqueC: paletasDisponibles[0].terciario,
-  modoPivotes: "espalda",
-  mostrarBloques: true,
-  mostrarLogos: true,
-  // Logos con tope de escala 10
-  logo1_x: 700,
-  logo1_y: 630,
-  logo1_esc: 0.8,
-  logo2_x: 1548,
-  logo2_y: 450,
-  logo2_esc: 0.15,
-  logo3_x: 1024,
-  logo3_y: 1100,
-  logo3_esc: 0.2,
-  logo4_x: 1700,
-  logo4_y: 900,
-  logo4_esc: 0.12,
-  logo5_x: 340,
-  logo5_y: 900,
-  logo5_esc: 0.12,
-  // Iluminación
-  intensidadLuzAmbiente: 3.65,
-  intensidadLuzPrincipal: 10,
-  colorLuzAmbiente: "#ffffff",
-  colorLuzPrincipal: "#fff4dd",
-  posicionLuzX: -0.08,
-  posicionLuzY: 0.42,
-  posicionLuzZ: -0.82,
-  distanciaLuz: 1.8,
-  anguloLuz: 1.48,
-  penumbraLuz: 1.0,
-  decayLuz: 1.0,
-  // Fondo y Escena
-  usarImagenFondo: false,
-  imagenFondoPath: "./FONDOPLAYERA.png",
-  colorFondo: "#101010",
-  colorFondo2: "#2e4366",
-  // HDRI y Material
-  usarHDRI: true,
-  intensidadHDRI: 0.35,
-  exposure: 0.15,
-  roughness: 0.8,
-  metalness: 0.425,
-  outlineActivo: true,
-  outlineColor: "#ffffff",
-  outlineGrosor: 0.004,
-  outlineIrregularidad: 9,
-  outlineEscalaRuido: 0.5,
-  outlineUmbralSilueta: 0,
-  outlineSuavidadSilueta: 0.01,
-  outlineReducirAbajo: 1,
-  outlineSuavidadAbajo: 0.01,
-  emissiveIntensity: 0,
-  colorEmissive: "#000000",
-  mostrarPiso: true,
-  opacidadSombra: 0.3,
-  // Acciones
-  grabarVideo: () => prepararGrabacion(),
-  descargarImagen: () => descargarCaptura(),
-};
+  // --- 2. ESTADO GLOBAL (SETTINGS COMPLETOS) ---
+  const settings = {
+    nombre: "JUGADOR",
+    numero: "10",
+    fuente: "Impact",
+    negrita: false,
+    tamanioNombre: 175,
+    tamanioNumero: 355,
+    posicionPredefinida: "Espalda",
+    posX: 1550,
+    posY: 510,
+    espaciado: 260,
+    escalaX: 1,
+    escalaY: 1,
+    pechoX: 750,
+    pechoY: 1450,
+    pechoEscala: 0.5,
+    mangaIzqX: pivotes["Manga Izq"].x,
+    mangaIzqY: pivotes["Manga Izq"].y,
+    mangaIzqEscala: 1,
+    mangaDerX: 490,
+    mangaDerY: 1930,
+    mangaDerEscala: 0.4,
+    colorTexto: paletasDisponibles[0].terciario,
+    texturaBase: texturasDisponibles[1],
+    paletaColor: paletasDisponibles[0].id,
+    colorBloqueA: paletasDisponibles[0].principal,
+    colorBloqueB: paletasDisponibles[0].secundario,
+    colorBloqueC: paletasDisponibles[0].terciario,
+    modoPivotes: "espalda",
+    mostrarBloques: true,
+    mostrarLogos: true,
+    // Logos con tope de escala 10
+    logo1_x: 700,
+    logo1_y: 630,
+    logo1_esc: 0.8,
+    logo2_x: 1548,
+    logo2_y: 450,
+    logo2_esc: 0.15,
+    logo3_x: 1024,
+    logo3_y: 1100,
+    logo3_esc: 0.2,
+    logo4_x: 1700,
+    logo4_y: 900,
+    logo4_esc: 0.12,
+    logo5_x: 340,
+    logo5_y: 900,
+    logo5_esc: 0.12,
+    // Iluminación
+    intensidadLuzAmbiente: 3.65,
+    intensidadLuzPrincipal: 10,
+    colorLuzAmbiente: "#ffffff",
+    colorLuzPrincipal: "#fff4dd",
+    posicionLuzX: -0.08,
+    posicionLuzY: 0.42,
+    posicionLuzZ: -0.82,
+    distanciaLuz: 1.8,
+    anguloLuz: 1.48,
+    penumbraLuz: 1.0,
+    decayLuz: 1.0,
+    // Fondo y Escena
+    usarImagenFondo: true,
+    imagenFondoPath: "./FONDOPLAYERA.png",
+    colorFondo: "#101010",
+    colorFondo2: "#2e4366",
+    // HDRI y Material
+    usarHDRI: true,
+    intensidadHDRI: 0.35,
+    exposure: 0.25,
+    roughness: 0.9,
+    metalness: 0.9,
+    outlineActivo: true,
+    outlineColor: "#ffffff",
+    outlineGrosor: 0.004,
+    outlineIrregularidad: 9,
+    outlineEscalaRuido: 0.5,
+    outlineUmbralSilueta: 0,
+    outlineSuavidadSilueta: 0.01,
+    outlineReducirAbajo: 1,
+    outlineSuavidadAbajo: 0.01,
+    emissiveIntensity: 0,
+    colorEmissive: "#000000",
+    mostrarPiso: true,
+    opacidadSombra: 0.3,
+    // Acciones
+    grabarVideo: () => prepararGrabacion(),
+    descargarImagen: () => descargarCaptura(),
+  };
 
-// --- 3. CANVAS DE TEXTURA Y PREVISUALIZACIÓN ---
-const textCanvas = document.createElement("canvas");
-const ctx = textCanvas.getContext("2d");
-textCanvas.width = 2048;
-textCanvas.height = 2048;
+  // --- 3. CANVAS DE TEXTURA Y PREVISUALIZACIÓN ---
+  const textCanvas = document.createElement("canvas");
+  const ctx = textCanvas.getContext("2d");
+  textCanvas.width = 2048;
+  textCanvas.height = 2048;
 
-// Previsualización Inferior Izquierda
-textCanvas.style.cssText = `
-  position: absolute; bottom: 20px; left: 20px; 
-  width: 256px; height: 256px; 
-  border: 2px solid white; z-index: 1000; background: #000;
-`;
-document.body.appendChild(textCanvas);
+  // Previsualización Inferior Izquierda
+  textCanvas.style.cssText = `
+    position: absolute; bottom: 20px; left: 20px; 
+    width: 256px; height: 256px; 
+    border: 2px solid white; z-index: 1000; background: #000;
+  `;
+  document.body.appendChild(textCanvas);
 
-const textTexture = new THREE.CanvasTexture(textCanvas);
-textTexture.colorSpace = THREE.SRGBColorSpace;
-textTexture.flipY = false;
+  const textTexture = new THREE.CanvasTexture(textCanvas);
+  textTexture.colorSpace = THREE.SRGBColorSpace;
+  textTexture.flipY = false;
 
-const imgCache = {};
+  const imgCache = {};
 
-async function cargarSVGColoreado(path, fillColor) {
-  const cacheKey = `${path}_${fillColor}`;
+  async function cargarSVGColoreado(path, fillColor) {
+    const cacheKey = `${path}_${fillColor}`;
 
-  if (imgCache[cacheKey]) {
-    return imgCache[cacheKey];
+    if (imgCache[cacheKey]) {
+      return imgCache[cacheKey];
+    }
+
+    const response = await fetch(path);
+    const svgText = await response.text();
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgText, "image/svg+xml");
+
+    const elements = doc.querySelectorAll("*");
+
+    elements.forEach((el) => {
+      // Solo afectar shapes reales (evita romper defs, gradients, etc.)
+      const tag = el.tagName.toLowerCase();
+
+      const drawableTags = [
+        "path",
+        "rect",
+        "circle",
+        "ellipse",
+        "polygon",
+        "polyline",
+      ];
+
+      if (!drawableTags.includes(tag)) return;
+
+      el.setAttribute("fill", fillColor);
+      el.setAttribute("stroke", fillColor);
+      el.removeAttribute("style");
+    });
+
+    const serializer = new XMLSerializer();
+    const newSVG = serializer.serializeToString(doc);
+
+    const blob = new Blob([newSVG], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+
+    const img = new Image();
+    img.src = url;
+
+    await new Promise((resolve) => (img.onload = resolve));
+
+    URL.revokeObjectURL(url);
+
+    imgCache[cacheKey] = img;
+    return img;
   }
 
-  const response = await fetch(path);
-  const svgText = await response.text();
+  const imageCache = {};
 
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(svgText, "image/svg+xml");
+  function cargarImagen(path) {
+    if (imageCache[path]) return imageCache[path];
 
-  const elements = doc.querySelectorAll("*");
+    const img = new Image();
+    img.src = path;
 
-  elements.forEach((el) => {
-    // Solo afectar shapes reales (evita romper defs, gradients, etc.)
-    const tag = el.tagName.toLowerCase();
-
-    const drawableTags = [
-      "path",
-      "rect",
-      "circle",
-      "ellipse",
-      "polygon",
-      "polyline",
-    ];
-
-    if (!drawableTags.includes(tag)) return;
-
-    el.setAttribute("fill", fillColor);
-    el.setAttribute("stroke", fillColor);
-    el.removeAttribute("style");
-  });
-
-  const serializer = new XMLSerializer();
-  const newSVG = serializer.serializeToString(doc);
-
-  const blob = new Blob([newSVG], { type: "image/svg+xml" });
-  const url = URL.createObjectURL(blob);
-
-  const img = new Image();
-  img.src = url;
-
-  await new Promise((resolve) => (img.onload = resolve));
-
-  URL.revokeObjectURL(url);
-
-  imgCache[cacheKey] = img;
-  return img;
-}
-
-const imageCache = {};
-
-function cargarImagen(path) {
-  if (imageCache[path]) return imageCache[path];
-
-  const img = new Image();
-  img.src = path;
-
-  imageCache[path] = img;
-  return img;
-}
-
-function aplicarPaleta(idPaleta) {
-  const paleta =
-    paletasDisponibles.find((item) => item.id === idPaleta) ||
-    paletasDisponibles[0];
-  settings.paletaColor = paleta.id;
-  settings.colorBloqueA = paleta.principal;
-  settings.colorBloqueB = paleta.secundario;
-  settings.colorBloqueC = paleta.terciario;
-  settings.colorTexto = paleta.terciario;
-}
-
-function actualizarTextura() {
-  textureVersion++;
-  const currentVersion = textureVersion;
-
-  ctx.clearRect(0, 0, 2048, 2048);
-
-  // 1. Color Base
-  ctx.fillStyle = settings.colorBloqueA;
-  ctx.fillRect(0, 0, 2048, 2048);
-
-  // 2. Bloques
-  if (settings.mostrarBloques) {
-    ctx.fillStyle = settings.colorBloqueB;
-    ctx.fillRect(0, 0, 2048, 260);
-    ctx.fillRect(0, 1625, 2048, 423);
+    imageCache[path] = img;
+    return img;
   }
 
-  // 3. SVG + TODO LO DEMÁS dentro del mismo flujo
-  cargarSVGColoreado(settings.texturaBase, settings.colorBloqueC).then(
-    (imgBase) => {
-      if (currentVersion !== textureVersion) return;
+  function aplicarPaleta(idPaleta) {
+    const paleta =
+      paletasDisponibles.find((item) => item.id === idPaleta) ||
+      paletasDisponibles[0];
+    settings.paletaColor = paleta.id;
+    settings.colorBloqueA = paleta.principal;
+    settings.colorBloqueB = paleta.secundario;
+    settings.colorBloqueC = paleta.terciario;
+    settings.colorTexto = paleta.terciario;
+  }
 
-      // SVG
-      ctx.drawImage(imgBase, 0, 0, 2048, 2048);
+  function actualizarTextura() {
+    textureVersion++;
+    const currentVersion = textureVersion;
 
-      // 4. LOGOS
-      if (settings.mostrarLogos) {
-        for (let i = 1; i <= 5; i++) {
-          const imgL = cargarImagen(`./Logo${i}.png`);
-          if (imgL.complete) {
-            const esc = settings[`logo${i}_esc`];
-            const w = imgL.width * esc;
-            const h = imgL.height * esc;
+    ctx.clearRect(0, 0, 2048, 2048);
 
-            ctx.drawImage(
-              imgL,
-              settings[`logo${i}_x`] - w / 2,
-              settings[`logo${i}_y`] - h / 2,
-              w,
-              h,
+    // 1. Color Base
+    ctx.fillStyle = settings.colorBloqueA;
+    ctx.fillRect(0, 0, 2048, 2048);
+
+    // 2. Bloques
+    if (settings.mostrarBloques) {
+      ctx.fillStyle = settings.colorBloqueB;
+      ctx.fillRect(0, 0, 2048, 260);
+      ctx.fillRect(0, 1625, 2048, 423);
+    }
+
+    // 3. SVG + TODO LO DEMÁS dentro del mismo flujo
+    cargarSVGColoreado(settings.texturaBase, settings.colorBloqueC).then(
+      (imgBase) => {
+        if (currentVersion !== textureVersion) return;
+
+        // SVG
+        ctx.drawImage(imgBase, 0, 0, 2048, 2048);
+
+        // 4. LOGOS
+        if (settings.mostrarLogos) {
+          for (let i = 1; i <= 5; i++) {
+            const imgL = cargarImagen(`./Logo${i}.png`);
+            if (imgL.complete) {
+              const esc = settings[`logo${i}_esc`];
+              const w = imgL.width * esc;
+              const h = imgL.height * esc;
+
+              ctx.drawImage(
+                imgL,
+                settings[`logo${i}_x`] - w / 2,
+                settings[`logo${i}_y`] - h / 2,
+                w,
+                h,
+              );
+            }
+          }
+        }
+
+        // 5. TEXTO
+        const gruposPivote = {
+          espalda: ["Espalda"],
+          espalda_manga: ["Espalda", "Manga Der"],
+          espalda_frente: ["Espalda", "Pecho"],
+          espalda_frente_manga: ["Espalda", "Pecho", "Manga Der"],
+        };
+
+        const pivotesActivos = gruposPivote[settings.modoPivotes] || ["Espalda"];
+
+        const peso = settings.negrita ? "700" : "500";
+
+        const dibujarNombreNumero = (x, y, escala, incluirNombre) => {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.scale(escala, escala);
+
+          ctx.fillStyle = settings.colorBloqueC;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+
+          if (incluirNombre) {
+            ctx.font = `${peso} ${settings.tamanioNombre}px "${settings.fuente}"`;
+            ctx.fillText(settings.nombre.toUpperCase(), 0, 0);
+
+            ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
+            ctx.fillText(settings.numero, 0, settings.espaciado);
+          } else {
+            ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
+            ctx.fillText(settings.numero, 0, 0);
+          }
+
+          ctx.restore();
+        };
+
+        for (const nombrePivote of pivotesActivos) {
+          if (nombrePivote === "Espalda") {
+            dibujarNombreNumero(
+              settings.posX,
+              settings.posY,
+              settings.escalaX,
+              true,
+            );
+            continue;
+          }
+
+          if (nombrePivote === "Pecho") {
+            dibujarNombreNumero(
+              settings.pechoX,
+              settings.pechoY,
+              settings.pechoEscala,
+              false,
+            );
+            continue;
+          }
+
+          if (nombrePivote === "Manga Der") {
+            dibujarNombreNumero(
+              settings.mangaDerX,
+              settings.mangaDerY,
+              settings.mangaDerEscala,
+              false,
             );
           }
         }
-      }
 
-      // 5. TEXTO
-      const gruposPivote = {
-        espalda: ["Espalda"],
-        espalda_manga: ["Espalda", "Manga Der"],
-        espalda_frente: ["Espalda", "Pecho"],
-        espalda_frente_manga: ["Espalda", "Pecho", "Manga Der"],
-      };
+        textTexture.needsUpdate = true;
+      },
+    );
+  }
 
-      const pivotesActivos = gruposPivote[settings.modoPivotes] || ["Espalda"];
-
-      const peso = settings.negrita ? "700" : "500";
-
-      const dibujarNombreNumero = (x, y, escala, incluirNombre) => {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(escala, escala);
-
-        ctx.fillStyle = settings.colorBloqueC;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-
-        if (incluirNombre) {
-          ctx.font = `${peso} ${settings.tamanioNombre}px "${settings.fuente}"`;
-          ctx.fillText(settings.nombre.toUpperCase(), 0, 0);
-
-          ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
-          ctx.fillText(settings.numero, 0, settings.espaciado);
-        } else {
-          ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
-          ctx.fillText(settings.numero, 0, 0);
-        }
-
-        ctx.restore();
-      };
-
-      for (const nombrePivote of pivotesActivos) {
-        if (nombrePivote === "Espalda") {
-          dibujarNombreNumero(
-            settings.posX,
-            settings.posY,
-            settings.escalaX,
-            true,
-          );
-          continue;
-        }
-
-        if (nombrePivote === "Pecho") {
-          dibujarNombreNumero(
-            settings.pechoX,
-            settings.pechoY,
-            settings.pechoEscala,
-            false,
-          );
-          continue;
-        }
-
-        if (nombrePivote === "Manga Der") {
-          dibujarNombreNumero(
-            settings.mangaDerX,
-            settings.mangaDerY,
-            settings.mangaDerEscala,
-            false,
-          );
-        }
-      }
-
-      textTexture.needsUpdate = true;
-    },
+  // --- 4. ESCENA 3D Y RENDERER ---
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000,
   );
-}
+  camera.position.set(0, 0, -0.75);
 
-// --- 4. ESCENA 3D Y RENDERER ---
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000,
-);
-camera.position.set(0, 0, -0.75);
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    preserveDrawingBuffer: true,
+  });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = settings.exposure;
+  renderer.shadowMap.enabled = true;
+  document.getElementById("app").appendChild(renderer.domElement);
 
-const renderer = new THREE.WebGLRenderer({
-  antialias: true,
-  preserveDrawingBuffer: true,
-});
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = settings.exposure;
-renderer.shadowMap.enabled = true;
-document.getElementById("app").appendChild(renderer.domElement);
+  // Fondo para Imagen
+  const bgScene = new THREE.Scene();
+  const bgCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const bgMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(2, 2),
+    new THREE.MeshBasicMaterial({ depthTest: false, depthWrite: false }),
+  );
+  bgScene.add(bgMesh);
 
-// Fondo para Imagen
-const bgScene = new THREE.Scene();
-const bgCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-const bgMesh = new THREE.Mesh(
-  new THREE.PlaneGeometry(2, 2),
-  new THREE.MeshBasicMaterial({ depthTest: false, depthWrite: false }),
-);
-bgScene.add(bgMesh);
+  const backgroundTextureLoader = new THREE.TextureLoader();
+  let fondoImagenTexture = null;
 
-const backgroundTextureLoader = new THREE.TextureLoader();
-let fondoImagenTexture = null;
-
-function actualizarFondo() {
-  if (settings.usarImagenFondo) {
-    if (fondoImagenTexture) {
-      bgMesh.material.map = fondoImagenTexture;
-      bgMesh.material.needsUpdate = true;
-      scene.background = null;
-      return;
-    }
-
-    backgroundTextureLoader.load(
-      settings.imagenFondoPath,
-      (tex) => {
-        tex.colorSpace = THREE.SRGBColorSpace;
-        fondoImagenTexture = tex;
+  function actualizarFondo() {
+    if (settings.usarImagenFondo) {
+      if (fondoImagenTexture) {
         bgMesh.material.map = fondoImagenTexture;
         bgMesh.material.needsUpdate = true;
         scene.background = null;
-      },
-      undefined,
-      (error) => {
-        console.error("No se pudo cargar FONDOPLAYERA.png", error);
-      },
-    );
-  } else {
-    const gCanvas = document.createElement("canvas");
-    gCanvas.width = 2;
-    gCanvas.height = 512;
-    const gCtx = gCanvas.getContext("2d");
-    const grd = gCtx.createLinearGradient(0, 0, 0, 512);
-    grd.addColorStop(0, settings.colorFondo2);
-    grd.addColorStop(1, settings.colorFondo);
-    gCtx.fillStyle = grd;
-    gCtx.fillRect(0, 0, 2, 512);
-    scene.background = new THREE.CanvasTexture(gCanvas);
-    bgMesh.material.map = null;
-    bgMesh.material.needsUpdate = true;
+        return;
+      }
+
+      backgroundTextureLoader.load(
+        settings.imagenFondoPath,
+        (tex) => {
+          tex.colorSpace = THREE.SRGBColorSpace;
+          fondoImagenTexture = tex;
+          bgMesh.material.map = fondoImagenTexture;
+          bgMesh.material.needsUpdate = true;
+          scene.background = null;
+        },
+        undefined,
+        (error) => {
+          console.error("No se pudo cargar FONDOPLAYERA.png", error);
+        },
+      );
+    } else {
+      const gCanvas = document.createElement("canvas");
+      gCanvas.width = 2;
+      gCanvas.height = 512;
+      const gCtx = gCanvas.getContext("2d");
+      const grd = gCtx.createLinearGradient(0, 0, 0, 512);
+      grd.addColorStop(0, settings.colorFondo2);
+      grd.addColorStop(1, settings.colorFondo);
+      gCtx.fillStyle = grd;
+      gCtx.fillRect(0, 0, 2, 512);
+      scene.background = new THREE.CanvasTexture(gCanvas);
+      bgMesh.material.map = null;
+      bgMesh.material.needsUpdate = true;
+    }
   }
-}
 
-// --- 5. LUCES, MODELO Y MATERIALES ---
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
+  // --- LOGO SOBRE FONDO (overlay en bgScene) ---
 
-const ambientLight = new THREE.AmbientLight(
-  settings.colorLuzAmbiente,
-  settings.intensidadLuzAmbiente,
+const logoTextureLoader = new THREE.TextureLoader();
+
+const logoMaterial = new THREE.MeshBasicMaterial({
+  transparent: true,
+  depthTest: false,
+  depthWrite: false,
+});
+
+const logoMesh = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.5, 0.5), // tamaño relativo a pantalla
+  logoMaterial
 );
-scene.add(ambientLight);
-const dirLight = new THREE.SpotLight(
-  settings.colorLuzPrincipal,
-  settings.intensidadLuzPrincipal,
-);
-dirLight.castShadow = true;
-scene.add(dirLight);
 
-function actualizarLuces() {
-  ambientLight.color.set(settings.colorLuzAmbiente);
-  ambientLight.intensity = settings.intensidadLuzAmbiente;
-  dirLight.color.set(settings.colorLuzPrincipal);
-  dirLight.intensity = settings.intensidadLuzPrincipal;
-  dirLight.position.set(
-    settings.posicionLuzX,
-    settings.posicionLuzY,
-    settings.posicionLuzZ,
+// Posición en pantalla (coordenadas ortográficas -1 a 1)
+logoMesh.position.set(-0.65, 0.6, 0); // esquina inferior derecha
+
+bgScene.add(logoMesh);
+
+// Cargar textura
+logoTextureLoader.load(
+  './LogoPasaElBalon.png',
+  (tex) => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    logoMaterial.map = tex;
+    logoMaterial.needsUpdate = true;
+  }
+);
+
+
+  // --- 5. LUCES, MODELO Y MATERIALES ---
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+
+  const ambientLight = new THREE.AmbientLight(
+    settings.colorLuzAmbiente,
+    settings.intensidadLuzAmbiente,
   );
-}
+  scene.add(ambientLight);
+  const dirLight = new THREE.SpotLight(
+    settings.colorLuzPrincipal,
+    settings.intensidadLuzPrincipal,
+  );
+  dirLight.castShadow = true;
+  scene.add(dirLight);
 
-let modelo3D, hdriEnvMap;
-const outlineMaterials = [];
-
-function crearMaterialOutline() {
-  const material = new THREE.ShaderMaterial({
-    uniforms: {
-      outlineColor: { value: new THREE.Color(settings.outlineColor) },
-      outlineWidth: { value: settings.outlineGrosor },
-      noiseAmplitude: { value: settings.outlineIrregularidad },
-      noiseScale: { value: settings.outlineEscalaRuido },
-      silhouetteThreshold: { value: settings.outlineUmbralSilueta },
-      silhouetteSoftness: { value: settings.outlineSuavidadSilueta },
-      downwardSuppress: { value: settings.outlineReducirAbajo },
-      downwardSoftness: { value: settings.outlineSuavidadAbajo },
-    },
-    vertexShader: `
-      uniform float outlineWidth;
-      uniform float noiseAmplitude;
-      uniform float noiseScale;
-      uniform float silhouetteThreshold;
-      uniform float silhouetteSoftness;
-      uniform float downwardSuppress;
-      uniform float downwardSoftness;
-      varying float vRim;
-      varying float vDownwardMask;
-      varying float vNoise;
-
-      float hash(vec3 p) {
-        return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453123);
-      }
-
-      float noise3d(vec3 p) {
-        vec3 i = floor(p);
-        vec3 f = fract(p);
-        f = f * f * (3.0 - 2.0 * f);
-
-        float n000 = hash(i + vec3(0.0, 0.0, 0.0));
-        float n100 = hash(i + vec3(1.0, 0.0, 0.0));
-        float n010 = hash(i + vec3(0.0, 1.0, 0.0));
-        float n110 = hash(i + vec3(1.0, 1.0, 0.0));
-        float n001 = hash(i + vec3(0.0, 0.0, 1.0));
-        float n101 = hash(i + vec3(1.0, 0.0, 1.0));
-        float n011 = hash(i + vec3(0.0, 1.0, 1.0));
-        float n111 = hash(i + vec3(1.0, 1.0, 1.0));
-
-        float nx00 = mix(n000, n100, f.x);
-        float nx10 = mix(n010, n110, f.x);
-        float nx01 = mix(n001, n101, f.x);
-        float nx11 = mix(n011, n111, f.x);
-        float nxy0 = mix(nx00, nx10, f.y);
-        float nxy1 = mix(nx01, nx11, f.y);
-        return mix(nxy0, nxy1, f.z);
-      }
-
-      void main() {
-        vec3 objectNormal = normalize(normal);
-        float irregular = noise3d(position * noiseScale);
-        vec3 viewNormal = normalize(normalMatrix * normal);
-        vec4 baseMvPosition = modelViewMatrix * vec4(position, 1.0);
-        vec3 viewDir = normalize(-baseMvPosition.xyz);
-        float rim = 1.0 - abs(dot(viewNormal, viewDir));
-        float rimMask = smoothstep(
-          silhouetteThreshold,
-          silhouetteThreshold + max(silhouetteSoftness, 0.0001),
-          rim
-        );
-        float downwardMask = 1.0 - smoothstep(
-          downwardSuppress - max(downwardSoftness, 0.0001),
-          downwardSuppress + max(downwardSoftness, 0.0001),
-          -objectNormal.y
-        );
-        float width =
-          outlineWidth + ((irregular * 2.0) - 1.0) * (noiseAmplitude * 0.0005);
-        width *= rimMask * downwardMask;
-        width = max(width, 0.0);
-        vec3 displaced = position + objectNormal * width;
-        vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
-        vRim = rimMask;
-        vDownwardMask = downwardMask;
-        vNoise = irregular;
-        gl_Position = projectionMatrix * mvPosition;
-      }
-    `,
-    fragmentShader: `
-      uniform vec3 outlineColor;
-      varying float vRim;
-      varying float vDownwardMask;
-      varying float vNoise;
-
-      void main() {
-        float rimMask = vRim * vDownwardMask;
-        if (rimMask <= 0.001) discard;
-        float shade = mix(0.9, 1.05, vNoise);
-        gl_FragColor = vec4(outlineColor * shade, rimMask);
-      }
-    `,
-    side: THREE.BackSide,
-    transparent: true,
-    depthWrite: true,
-  });
-
-  outlineMaterials.push(material);
-  return material;
-}
-
-function crearOutlineMesh(mesh) {
-  const outlineMesh = new THREE.Mesh(mesh.geometry, crearMaterialOutline());
-  outlineMesh.name = `${mesh.name || "mesh"}_outline`;
-  outlineMesh.renderOrder = -1;
-  outlineMesh.visible = settings.outlineActivo;
-  outlineMesh.frustumCulled = false;
-  outlineMesh.castShadow = false;
-  outlineMesh.receiveShadow = false;
-  outlineMesh.userData.isOutlineMesh = true;
-  return outlineMesh;
-}
-
-function actualizarOutline() {
-  for (const material of outlineMaterials) {
-    material.uniforms.outlineColor.value.set(settings.outlineColor);
-    material.uniforms.outlineWidth.value = settings.outlineGrosor;
-    material.uniforms.noiseAmplitude.value = settings.outlineIrregularidad;
-    material.uniforms.noiseScale.value = settings.outlineEscalaRuido;
-    material.uniforms.silhouetteThreshold.value = settings.outlineUmbralSilueta;
-    material.uniforms.silhouetteSoftness.value =
-      settings.outlineSuavidadSilueta;
-    material.uniforms.downwardSuppress.value = settings.outlineReducirAbajo;
-    material.uniforms.downwardSoftness.value = settings.outlineSuavidadAbajo;
-  }
-
-  if (!modelo3D) return;
-  modelo3D.traverse((c) => {
-    if (!c.isMesh) return;
-    const outlineMesh = c.children.find(
-      (child) => child.userData?.isOutlineMesh,
+  function actualizarLuces() {
+    ambientLight.color.set(settings.colorLuzAmbiente);
+    ambientLight.intensity = settings.intensidadLuzAmbiente;
+    dirLight.color.set(settings.colorLuzPrincipal);
+    dirLight.intensity = settings.intensidadLuzPrincipal;
+    dirLight.position.set(
+      settings.posicionLuzX,
+      settings.posicionLuzY,
+      settings.posicionLuzZ,
     );
-    if (outlineMesh) outlineMesh.visible = settings.outlineActivo;
-  });
-}
-
-function descargarCaptura() {
-  renderFrame();
-  renderer.domElement.toBlob((blob) => {
-    if (!blob) return;
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `jersey-${settings.nombre || "preview"}.png`;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }, "image/png");
-}
-
-let mediaRecorder = null;
-let recordedChunks = [];
-let recordingTimeout = null;
-
-function prepararGrabacion() {
-  if (!("MediaRecorder" in window) || !renderer.domElement.captureStream) {
-    console.error("MediaRecorder no está disponible en este navegador.");
-    return;
   }
 
-  if (mediaRecorder && mediaRecorder.state === "recording") {
-    mediaRecorder.stop();
-    return;
+  let modelo3D, hdriEnvMap;
+  const outlineMaterials = [];
+
+  function crearMaterialOutline() {
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        outlineColor: { value: new THREE.Color(settings.outlineColor) },
+        outlineWidth: { value: settings.outlineGrosor },
+        noiseAmplitude: { value: settings.outlineIrregularidad },
+        noiseScale: { value: settings.outlineEscalaRuido },
+        silhouetteThreshold: { value: settings.outlineUmbralSilueta },
+        silhouetteSoftness: { value: settings.outlineSuavidadSilueta },
+        downwardSuppress: { value: settings.outlineReducirAbajo },
+        downwardSoftness: { value: settings.outlineSuavidadAbajo },
+      },
+      vertexShader: `
+        uniform float outlineWidth;
+        uniform float noiseAmplitude;
+        uniform float noiseScale;
+        uniform float silhouetteThreshold;
+        uniform float silhouetteSoftness;
+        uniform float downwardSuppress;
+        uniform float downwardSoftness;
+        varying float vRim;
+        varying float vDownwardMask;
+        varying float vNoise;
+
+        float hash(vec3 p) {
+          return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453123);
+        }
+
+        float noise3d(vec3 p) {
+          vec3 i = floor(p);
+          vec3 f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+
+          float n000 = hash(i + vec3(0.0, 0.0, 0.0));
+          float n100 = hash(i + vec3(1.0, 0.0, 0.0));
+          float n010 = hash(i + vec3(0.0, 1.0, 0.0));
+          float n110 = hash(i + vec3(1.0, 1.0, 0.0));
+          float n001 = hash(i + vec3(0.0, 0.0, 1.0));
+          float n101 = hash(i + vec3(1.0, 0.0, 1.0));
+          float n011 = hash(i + vec3(0.0, 1.0, 1.0));
+          float n111 = hash(i + vec3(1.0, 1.0, 1.0));
+
+          float nx00 = mix(n000, n100, f.x);
+          float nx10 = mix(n010, n110, f.x);
+          float nx01 = mix(n001, n101, f.x);
+          float nx11 = mix(n011, n111, f.x);
+          float nxy0 = mix(nx00, nx10, f.y);
+          float nxy1 = mix(nx01, nx11, f.y);
+          return mix(nxy0, nxy1, f.z);
+        }
+
+        void main() {
+          vec3 objectNormal = normalize(normal);
+          float irregular = noise3d(position * noiseScale);
+          vec3 viewNormal = normalize(normalMatrix * normal);
+          vec4 baseMvPosition = modelViewMatrix * vec4(position, 1.0);
+          vec3 viewDir = normalize(-baseMvPosition.xyz);
+          float rim = 1.0 - abs(dot(viewNormal, viewDir));
+          float rimMask = smoothstep(
+            silhouetteThreshold,
+            silhouetteThreshold + max(silhouetteSoftness, 0.0001),
+            rim
+          );
+          float downwardMask = 1.0 - smoothstep(
+            downwardSuppress - max(downwardSoftness, 0.0001),
+            downwardSuppress + max(downwardSoftness, 0.0001),
+            -objectNormal.y
+          );
+          float width =
+            outlineWidth + ((irregular * 2.0) - 1.0) * (noiseAmplitude * 0.0005);
+          width *= rimMask * downwardMask;
+          width = max(width, 0.0);
+          vec3 displaced = position + objectNormal * width;
+          vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
+          vRim = rimMask;
+          vDownwardMask = downwardMask;
+          vNoise = irregular;
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 outlineColor;
+        varying float vRim;
+        varying float vDownwardMask;
+        varying float vNoise;
+
+        void main() {
+          float rimMask = vRim * vDownwardMask;
+          if (rimMask <= 0.001) discard;
+          float shade = mix(0.9, 1.05, vNoise);
+          gl_FragColor = vec4(outlineColor * shade, rimMask);
+        }
+      `,
+      side: THREE.BackSide,
+      transparent: true,
+      depthWrite: true,
+    });
+
+    outlineMaterials.push(material);
+    return material;
   }
 
-  const stream = renderer.domElement.captureStream(30);
-  recordedChunks = [];
-  const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
-    ? "video/webm;codecs=vp9"
-    : "video/webm";
+  function crearOutlineMesh(mesh) {
+    const outlineMesh = new THREE.Mesh(mesh.geometry, crearMaterialOutline());
+    outlineMesh.name = `${mesh.name || "mesh"}_outline`;
+    outlineMesh.renderOrder = -1;
+    outlineMesh.visible = settings.outlineActivo;
+    outlineMesh.frustumCulled = false;
+    outlineMesh.castShadow = false;
+    outlineMesh.receiveShadow = false;
+    outlineMesh.userData.isOutlineMesh = true;
+    return outlineMesh;
+  }
 
-  mediaRecorder = new MediaRecorder(stream, { mimeType });
-
-  mediaRecorder.ondataavailable = (event) => {
-    if (event.data && event.data.size > 0) recordedChunks.push(event.data);
-  };
-
-  mediaRecorder.onstop = () => {
-    if (recordingTimeout) {
-      clearTimeout(recordingTimeout);
-      recordingTimeout = null;
+  function actualizarOutline() {
+    for (const material of outlineMaterials) {
+      material.uniforms.outlineColor.value.set(settings.outlineColor);
+      material.uniforms.outlineWidth.value = settings.outlineGrosor;
+      material.uniforms.noiseAmplitude.value = settings.outlineIrregularidad;
+      material.uniforms.noiseScale.value = settings.outlineEscalaRuido;
+      material.uniforms.silhouetteThreshold.value = settings.outlineUmbralSilueta;
+      material.uniforms.silhouetteSoftness.value =
+        settings.outlineSuavidadSilueta;
+      material.uniforms.downwardSuppress.value = settings.outlineReducirAbajo;
+      material.uniforms.downwardSoftness.value = settings.outlineSuavidadAbajo;
     }
 
-    const blob = new Blob(recordedChunks, { type: "video/webm" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `story-${settings.nombre || "preview"}.webm`;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
+    if (!modelo3D) return;
+    modelo3D.traverse((c) => {
+      if (!c.isMesh) return;
+      const outlineMesh = c.children.find(
+        (child) => child.userData?.isOutlineMesh,
+      );
+      if (outlineMesh) outlineMesh.visible = settings.outlineActivo;
+    });
+  }
 
-  mediaRecorder.start();
-  recordingTimeout = setTimeout(() => {
-    if (mediaRecorder && mediaRecorder.state === "recording")
+  function descargarCaptura() {
+    renderFrame();
+    renderer.domElement.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `jersey-${settings.nombre || "preview"}.png`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }, "image/png");
+  }
+
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let recordingTimeout = null;
+
+  function prepararGrabacion() {
+    if (!("MediaRecorder" in window) || !renderer.domElement.captureStream) {
+      console.error("MediaRecorder no está disponible en este navegador.");
+      return;
+    }
+
+    if (mediaRecorder && mediaRecorder.state === "recording") {
       mediaRecorder.stop();
-  }, 5000);
-}
-
-function actualizarMateriales() {
-  if (!modelo3D) return;
-  modelo3D.traverse((c) => {
-    if (c.isMesh && !c.userData?.isOutlineMesh) {
-      c.material.roughness = settings.roughness;
-      c.material.metalness = settings.metalness;
-      c.material.envMapIntensity = settings.usarHDRI
-        ? settings.intensidadHDRI
-        : 0;
+      return;
     }
-  });
-}
 
-function renderFrame() {
-  if (settings.usarImagenFondo && bgMesh.material.map) {
-    renderer.autoClear = false;
-    renderer.clear();
-    renderer.render(bgScene, bgCamera);
-    renderer.clearDepth();
+    const stream = renderer.domElement.captureStream(30);
+    recordedChunks = [];
+    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+      ? "video/webm;codecs=vp9"
+      : "video/webm";
+
+    mediaRecorder = new MediaRecorder(stream, { mimeType });
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data && event.data.size > 0) recordedChunks.push(event.data);
+    };
+
+    mediaRecorder.onstop = () => {
+      if (recordingTimeout) {
+        clearTimeout(recordingTimeout);
+        recordingTimeout = null;
+      }
+
+      const blob = new Blob(recordedChunks, { type: "video/webm" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `story-${settings.nombre || "preview"}.webm`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+
+    mediaRecorder.start();
+    recordingTimeout = setTimeout(() => {
+      if (mediaRecorder && mediaRecorder.state === "recording")
+        mediaRecorder.stop();
+    }, 5000);
+  }
+
+  function actualizarMateriales() {
+    if (!modelo3D) return;
+    modelo3D.traverse((c) => {
+      if (c.isMesh && !c.userData?.isOutlineMesh) {
+        c.material.roughness = settings.roughness;
+        c.material.metalness = settings.metalness;
+        c.material.envMapIntensity = settings.usarHDRI
+          ? settings.intensidadHDRI
+          : 0;
+      }
+    });
+  }
+
+  function renderFrame() {
+    if (settings.usarImagenFondo && bgMesh.material.map) {
+      renderer.autoClear = false;
+      renderer.clear();
+      renderer.render(bgScene, bgCamera);
+      renderer.clearDepth();
+      renderer.render(scene, camera);
+      renderer.autoClear = true;
+      return;
+    }
+
     renderer.render(scene, camera);
-    renderer.autoClear = true;
-    return;
   }
 
-  renderer.render(scene, camera);
-}
-
-const pmremGenerator = new THREE.PMREMGenerator(renderer);
-new HDRLoader().load("./hdri.hdr", (hdr) => {
-  hdr.mapping = THREE.EquirectangularReflectionMapping;
-  hdriEnvMap = pmremGenerator.fromEquirectangular(hdr).texture;
-  hdr.dispose();
-  scene.environment = settings.usarHDRI ? hdriEnvMap : null;
-  actualizarMateriales();
-});
-
-new GLTFLoader().load("./TshirtPajaro.glb", (gltf) => {
-  modelo3D = gltf.scene;
-  const modelMeshes = [];
-
-  modelo3D.traverse((c) => {
-    if (c.isMesh && !c.userData?.isOutlineMesh) {
-      c.castShadow = c.receiveShadow = true;
-      c.material = new THREE.MeshStandardMaterial({ map: textTexture });
-      modelMeshes.push(c);
-    }
-  });
-
-  for (const mesh of modelMeshes) {
-    mesh.add(crearOutlineMesh(mesh));
-  }
-
-  scene.add(modelo3D);
-  modelo3D.position.set(0, -0.3, 0);
-  actualizarMateriales();
-  actualizarOutline();
-});
-
-// --- 6. GUI (TODOS LOS MENÚS RESTAURADOS) ---
-const gui = new GUI();
-
-// Carpeta 1: Colores y Prenda
-const fPrenda = gui.addFolder("Configuración de Prenda");
-fPrenda
-  .add(settings, "texturaBase", texturasDisponibles)
-  .name("Textura Base")
-  .onChange(actualizarTextura);
-fPrenda
-  .add(
-    settings,
-    "paletaColor",
-    paletasDisponibles.reduce((acc, paleta) => {
-      acc[paleta.nombre] = paleta.id;
-      return acc;
-    }, {}),
-  )
-  .name("Paleta")
-  .onChange((value) => {
-    aplicarPaleta(value);
-    syncHtmlPaleta();
-    actualizarTextura();
-  });
-fPrenda
-  .addColor(settings, "colorBloqueA")
-  .name("Color Principal")
-  .onChange(actualizarTextura);
-fPrenda
-  .addColor(settings, "colorBloqueB")
-  .name("Color Bloques")
-  .onChange(actualizarTextura);
-fPrenda
-  .addColor(settings, "colorBloqueC")
-  .name("Color 3")
-  .onChange((value) => {
-    settings.colorTexto = value;
-    actualizarTextura();
-  });
-fPrenda
-  .add(settings, "mostrarBloques")
-  .name("Activar Bloques")
-  .onChange(actualizarTextura);
-
-// Carpeta 2: Logos (Tope Escala 10)
-const fLogos = gui.addFolder("Control de Logos (5)");
-fLogos
-  .add(settings, "mostrarLogos")
-  .name("Ver todos")
-  .onChange(actualizarTextura);
-for (let i = 1; i <= 5; i++) {
-  const s = fLogos.addFolder(`Logo ${i}`);
-  s.add(settings, `logo${i}_x`, 0, 2048).name("X").onChange(actualizarTextura);
-  s.add(settings, `logo${i}_y`, 0, 2048).name("Y").onChange(actualizarTextura);
-  s.add(settings, `logo${i}_esc`, 0.01, 10)
-    .name("Escala")
-    .onChange(actualizarTextura);
-  s.close();
-}
-
-// Carpeta 3: Texto y Pivotes
-const fTexto = gui.addFolder("Personalización Texto");
-fTexto.add(settings, "nombre").onChange(actualizarTextura);
-fTexto.add(settings, "numero").onChange(actualizarTextura);
-fTexto
-  .add(settings, "posicionPredefinida", Object.keys(pivotes))
-  .name("Pivote")
-  .onChange((v) => {
-    settings.posX = pivotes[v].x;
-    settings.posY = pivotes[v].y;
-    actualizarTextura();
-    gui.controllers.forEach((c) => c.updateDisplay());
-  });
-fTexto.add(settings, "posX", 0, 2048).onChange(actualizarTextura);
-fTexto.add(settings, "posY", 0, 2048).onChange(actualizarTextura);
-
-const fFrente = gui.addFolder("Frente NÃºmero");
-fFrente.add(settings, "pechoX", 0, 2048).name("X").onChange(actualizarTextura);
-fFrente.add(settings, "pechoY", 0, 2048).name("Y").onChange(actualizarTextura);
-fFrente
-  .add(settings, "pechoEscala", 0.1, 5)
-  .name("Escala")
-  .onChange(actualizarTextura);
-
-const fMangaDer = gui.addFolder("Manga Der NÃºmero");
-fMangaDer
-  .add(settings, "mangaDerX", 0, 2048)
-  .name("X")
-  .onChange(actualizarTextura);
-fMangaDer
-  .add(settings, "mangaDerY", 0, 2048)
-  .name("Y")
-  .onChange(actualizarTextura);
-fMangaDer
-  .add(settings, "mangaDerEscala", 0.1, 5)
-  .name("Escala")
-  .onChange(actualizarTextura);
-
-// Carpeta 4: Material y HDRI
-const fMat = gui.addFolder("Física del Material / HDRI");
-fMat
-  .add(settings, "roughness", 0, 1)
-  .name("Rugosidad")
-  .onChange(actualizarMateriales);
-fMat
-  .add(settings, "metalness", 0, 1)
-  .name("Metalicidad")
-  .onChange(actualizarMateriales);
-fMat
-  .add(settings, "usarHDRI")
-  .name("Activar HDRI")
-  .onChange((v) => {
-    scene.environment = v ? hdriEnvMap : null;
+  const pmremGenerator = new THREE.PMREMGenerator(renderer);
+  new HDRLoader().load("./hdri.hdr", (hdr) => {
+    hdr.mapping = THREE.EquirectangularReflectionMapping;
+    hdriEnvMap = pmremGenerator.fromEquirectangular(hdr).texture;
+    hdr.dispose();
+    scene.environment = settings.usarHDRI ? hdriEnvMap : null;
     actualizarMateriales();
   });
-fMat
-  .add(settings, "intensidadHDRI", 0, 2)
-  .name("Brillo HDRI")
-  .onChange(actualizarMateriales);
 
-// Carpeta 5: Escena e Iluminación
-const fOutline = gui.addFolder("Contorno Toon");
-fOutline
-  .add(settings, "outlineActivo")
-  .name("Activar Contorno")
-  .onChange(actualizarOutline);
-fOutline
-  .addColor(settings, "outlineColor")
-  .name("Color Contorno")
-  .onChange(actualizarOutline);
-fOutline
-  .add(settings, "outlineGrosor", 0.001, 0.08)
-  .name("Grosor")
-  .onChange(actualizarOutline);
-fOutline
-  .add(settings, "outlineIrregularidad", 0, 20)
-  .name("Irregularidad")
-  .onChange(actualizarOutline);
-fOutline
-  .add(settings, "outlineEscalaRuido", 0.1, 20)
-  .name("Escala Patrón")
-  .onChange(actualizarOutline);
-fOutline
-  .add(settings, "outlineUmbralSilueta", 0, 0.8)
-  .name("Limpieza Interna")
-  .onChange(actualizarOutline);
-fOutline
-  .add(settings, "outlineSuavidadSilueta", 0.01, 0.5)
-  .name("Suavidad Borde")
-  .onChange(actualizarOutline);
-fOutline
-  .add(settings, "outlineReducirAbajo", 0, 1)
-  .name("Limpieza Axila")
-  .onChange(actualizarOutline);
-fOutline
-  .add(settings, "outlineSuavidadAbajo", 0.01, 0.5)
-  .name("Suavidad Axila")
-  .onChange(actualizarOutline);
+  new GLTFLoader().load("./TshirtPajaro.glb", (gltf) => {
+    modelo3D = gltf.scene;
+    const modelMeshes = [];
 
-const fEscena = gui.addFolder("Iluminación y Fondo");
-fEscena
-  .add(settings, "exposure", 0, 2)
-  .name("Exposición")
-  .onChange((v) => (renderer.toneMappingExposure = v));
-fEscena
-  .add(settings, "usarImagenFondo")
-  .name("Imagen FONDOPLAYERA")
-  .onChange(actualizarFondo);
-fEscena
-  .addColor(settings, "colorFondo")
-  .name("Color de Fondo")
-  .onChange(actualizarFondo);
-fEscena
-  .add(settings, "intensidadLuzPrincipal", 0, 20)
-  .name("Luz Focal")
-  .onChange(actualizarLuces);
+    modelo3D.traverse((c) => {
+      if (c.isMesh && !c.userData?.isOutlineMesh) {
+        c.castShadow = c.receiveShadow = true;
+        c.material = new THREE.MeshStandardMaterial({ map: textTexture });
+        modelMeshes.push(c);
+      }
+    });
 
-// Botones de Acción
-gui.add(settings, "descargarImagen").name("📸 Capturar PNG");
-gui.add(settings, "grabarVideo").name("🎬 Grabar Story");
+    for (const mesh of modelMeshes) {
+      mesh.add(crearOutlineMesh(mesh));
+    }
 
-const htmlControls = {
-  nombre: document.getElementById("control-nombre"),
-  numero: document.getElementById("control-numero"),
-  colorOutline: document.getElementById("control-color-outline"),
-  capturar: document.getElementById("control-capturar"),
-  story: document.getElementById("control-story"),
-  paletas: document.getElementById("control-paletas"),
-  texturas: document.querySelectorAll('input[name="textura-base"]'),
-  pivotes: document.querySelectorAll('input[name="modo-pivotes"]'),
-};
-
-function bindHtmlControls() {
-  if (!htmlControls.nombre) return;
-
-  htmlControls.nombre.value = settings.nombre;
-  htmlControls.numero.value = settings.numero;
-  htmlControls.colorOutline.value = settings.outlineColor;
-
-  htmlControls.nombre.addEventListener("input", (event) => {
-    settings.nombre = event.target.value;
-    actualizarTextura();
-  });
-
-  htmlControls.numero.addEventListener("input", (event) => {
-    settings.numero = event.target.value;
-    actualizarTextura();
-  });
-
-  htmlControls.colorOutline.addEventListener("input", (event) => {
-    settings.outlineColor = event.target.value;
+    scene.add(modelo3D);
+    modelo3D.position.set(0, -0.3, 0);
+    actualizarMateriales();
     actualizarOutline();
   });
 
-  if (htmlControls.paletas) {
-    htmlControls.paletas.innerHTML = "";
-    for (const paleta of paletasDisponibles) {
-      const option = document.createElement("label");
-      option.className = "palette-option";
-      option.innerHTML = `
-        <input type="radio" name="paleta-color" value="${paleta.id}">
-        <span class="palette-label">${paleta.nombre}</span>
-        <span class="palette-swatch">
-          <span style="background:${paleta.principal}"></span>
-          <span style="background:${paleta.secundario}"></span>
-          <span style="background:${paleta.terciario}"></span>
-        </span>
-      `;
 
-      const input = option.querySelector('input[name="paleta-color"]');
-      input.checked = paleta.id === settings.paletaColor;
-      input.addEventListener("change", (event) => {
-        if (!event.target.checked) return;
-        aplicarPaleta(event.target.value);
-        actualizarTextura();
-      });
+  // --- 6. GUI (TODOS LOS MENÚS RESTAURADOS) ---
+  const gui = new GUI();
 
-      htmlControls.paletas.appendChild(option);
-    }
+  // Carpeta 1: Colores y Prenda
+  const fPrenda = gui.addFolder("Configuración de Prenda");
+  fPrenda
+    .add(settings, "texturaBase", texturasDisponibles)
+    .name("Textura Base")
+    .onChange(actualizarTextura);
+  fPrenda
+    .add(
+      settings,
+      "paletaColor",
+      paletasDisponibles.reduce((acc, paleta) => {
+        acc[paleta.nombre] = paleta.id;
+        return acc;
+      }, {}),
+    )
+    .name("Paleta")
+    .onChange((value) => {
+      aplicarPaleta(value);
+      syncHtmlPaleta();
+      actualizarTextura();
+    });
+  fPrenda
+    .addColor(settings, "colorBloqueA")
+    .name("Color Principal")
+    .onChange(actualizarTextura);
+  fPrenda
+    .addColor(settings, "colorBloqueB")
+    .name("Color Bloques")
+    .onChange(actualizarTextura);
+  fPrenda
+    .addColor(settings, "colorBloqueC")
+    .name("Color 3")
+    .onChange((value) => {
+      settings.colorTexto = value;
+      actualizarTextura();
+    });
+  fPrenda
+    .add(settings, "mostrarBloques")
+    .name("Activar Bloques")
+    .onChange(actualizarTextura);
+
+  // Carpeta 2: Logos (Tope Escala 10)
+  const fLogos = gui.addFolder("Control de Logos (5)");
+  fLogos
+    .add(settings, "mostrarLogos")
+    .name("Ver todos")
+    .onChange(actualizarTextura);
+  for (let i = 1; i <= 5; i++) {
+    const s = fLogos.addFolder(`Logo ${i}`);
+    s.add(settings, `logo${i}_x`, 0, 2048).name("X").onChange(actualizarTextura);
+    s.add(settings, `logo${i}_y`, 0, 2048).name("Y").onChange(actualizarTextura);
+    s.add(settings, `logo${i}_esc`, 0.01, 10)
+      .name("Escala")
+      .onChange(actualizarTextura);
+    s.close();
   }
 
-  htmlControls.texturas.forEach((input) => {
-    input.checked = input.value === settings.texturaBase;
-    input.addEventListener("change", (event) => {
-      if (!event.target.checked) return;
-      settings.texturaBase = event.target.value;
+  // Carpeta 3: Texto y Pivotes
+  const fTexto = gui.addFolder("Personalización Texto");
+  fTexto.add(settings, "nombre").onChange(actualizarTextura);
+  fTexto.add(settings, "numero").onChange(actualizarTextura);
+  fTexto
+    .add(settings, "posicionPredefinida", Object.keys(pivotes))
+    .name("Pivote")
+    .onChange((v) => {
+      settings.posX = pivotes[v].x;
+      settings.posY = pivotes[v].y;
+      actualizarTextura();
+      gui.controllers.forEach((c) => c.updateDisplay());
+    });
+  fTexto.add(settings, "posX", 0, 2048).onChange(actualizarTextura);
+  fTexto.add(settings, "posY", 0, 2048).onChange(actualizarTextura);
+
+  const fFrente = gui.addFolder("Frente NÃºmero");
+  fFrente.add(settings, "pechoX", 0, 2048).name("X").onChange(actualizarTextura);
+  fFrente.add(settings, "pechoY", 0, 2048).name("Y").onChange(actualizarTextura);
+  fFrente
+    .add(settings, "pechoEscala", 0.1, 5)
+    .name("Escala")
+    .onChange(actualizarTextura);
+
+  const fMangaDer = gui.addFolder("Manga Der NÃºmero");
+  fMangaDer
+    .add(settings, "mangaDerX", 0, 2048)
+    .name("X")
+    .onChange(actualizarTextura);
+  fMangaDer
+    .add(settings, "mangaDerY", 0, 2048)
+    .name("Y")
+    .onChange(actualizarTextura);
+  fMangaDer
+    .add(settings, "mangaDerEscala", 0.1, 5)
+    .name("Escala")
+    .onChange(actualizarTextura);
+
+  // Carpeta 4: Material y HDRI
+  const fMat = gui.addFolder("Física del Material / HDRI");
+  fMat
+    .add(settings, "roughness", 0, 1)
+    .name("Rugosidad")
+    .onChange(actualizarMateriales);
+  fMat
+    .add(settings, "metalness", 0, 1)
+    .name("Metalicidad")
+    .onChange(actualizarMateriales);
+  fMat
+    .add(settings, "usarHDRI")
+    .name("Activar HDRI")
+    .onChange((v) => {
+      scene.environment = v ? hdriEnvMap : null;
+      actualizarMateriales();
+    });
+  fMat
+    .add(settings, "intensidadHDRI", 0, 2)
+    .name("Brillo HDRI")
+    .onChange(actualizarMateriales);
+
+  // Carpeta 5: Escena e Iluminación
+  const fOutline = gui.addFolder("Contorno Toon");
+  fOutline
+    .add(settings, "outlineActivo")
+    .name("Activar Contorno")
+    .onChange(actualizarOutline);
+  fOutline
+    .addColor(settings, "outlineColor")
+    .name("Color Contorno")
+    .onChange(actualizarOutline);
+  fOutline
+    .add(settings, "outlineGrosor", 0.001, 0.08)
+    .name("Grosor")
+    .onChange(actualizarOutline);
+  fOutline
+    .add(settings, "outlineIrregularidad", 0, 20)
+    .name("Irregularidad")
+    .onChange(actualizarOutline);
+  fOutline
+    .add(settings, "outlineEscalaRuido", 0.1, 20)
+    .name("Escala Patrón")
+    .onChange(actualizarOutline);
+  fOutline
+    .add(settings, "outlineUmbralSilueta", 0, 0.8)
+    .name("Limpieza Interna")
+    .onChange(actualizarOutline);
+  fOutline
+    .add(settings, "outlineSuavidadSilueta", 0.01, 0.5)
+    .name("Suavidad Borde")
+    .onChange(actualizarOutline);
+  fOutline
+    .add(settings, "outlineReducirAbajo", 0, 1)
+    .name("Limpieza Axila")
+    .onChange(actualizarOutline);
+  fOutline
+    .add(settings, "outlineSuavidadAbajo", 0.01, 0.5)
+    .name("Suavidad Axila")
+    .onChange(actualizarOutline);
+
+  const fEscena = gui.addFolder("Iluminación y Fondo");
+  fEscena
+    .add(settings, "exposure", 0, 2)
+    .name("Exposición")
+    .onChange((v) => (renderer.toneMappingExposure = v));
+  fEscena
+    .add(settings, "usarImagenFondo")
+    .name("Imagen FONDOPLAYERA")
+    .onChange(actualizarFondo);
+  fEscena
+    .addColor(settings, "colorFondo")
+    .name("Color de Fondo")
+    .onChange(actualizarFondo);
+  fEscena
+    .add(settings, "intensidadLuzPrincipal", 0, 20)
+    .name("Luz Focal")
+    .onChange(actualizarLuces);
+
+  // Botones de Acción
+  gui.add(settings, "descargarImagen").name("📸 Capturar PNG");
+  gui.add(settings, "grabarVideo").name("🎬 Grabar Story");
+
+  const htmlControls = {
+    nombre: document.getElementById("control-nombre"),
+    numero: document.getElementById("control-numero"),
+    colorOutline: document.getElementById("control-color-outline"),
+    capturar: document.getElementById("control-capturar"),
+    story: document.getElementById("control-story"),
+    paletas: document.getElementById("control-paletas"),
+    texturas: document.querySelectorAll('input[name="textura-base"]'),
+    pivotes: document.querySelectorAll('input[name="modo-pivotes"]'),
+  };
+
+  function bindHtmlControls() {
+    if (!htmlControls.nombre) return;
+
+    htmlControls.nombre.value = settings.nombre;
+    htmlControls.numero.value = settings.numero;
+    htmlControls.colorOutline.value = settings.outlineColor;
+
+    htmlControls.nombre.addEventListener("input", (event) => {
+      settings.nombre = event.target.value;
       actualizarTextura();
     });
-  });
 
-  htmlControls.pivotes.forEach((input) => {
-    input.checked = input.value === settings.modoPivotes;
-    input.addEventListener("change", (event) => {
-      if (!event.target.checked) return;
-      settings.modoPivotes = event.target.value;
+    htmlControls.numero.addEventListener("input", (event) => {
+      settings.numero = event.target.value;
       actualizarTextura();
     });
+
+    htmlControls.colorOutline.addEventListener("input", (event) => {
+      settings.outlineColor = event.target.value;
+      actualizarOutline();
+    });
+
+    if (htmlControls.paletas) {
+      htmlControls.paletas.innerHTML = "";
+      for (const paleta of paletasDisponibles) {
+        const option = document.createElement("label");
+        option.className = "palette-option";
+        option.innerHTML = `
+          <input type="radio" name="paleta-color" value="${paleta.id}">
+          <span class="palette-label">${paleta.nombre}</span>
+          <span class="palette-swatch">
+            <span style="background:${paleta.principal}"></span>
+            <span style="background:${paleta.secundario}"></span>
+            <span style="background:${paleta.terciario}"></span>
+          </span>
+        `;
+
+        const input = option.querySelector('input[name="paleta-color"]');
+        input.checked = paleta.id === settings.paletaColor;
+        input.addEventListener("change", (event) => {
+          if (!event.target.checked) return;
+          aplicarPaleta(event.target.value);
+          actualizarTextura();
+        });
+
+        htmlControls.paletas.appendChild(option);
+      }
+    }
+
+    htmlControls.texturas.forEach((input) => {
+      input.checked = input.value === settings.texturaBase;
+      input.addEventListener("change", (event) => {
+        if (!event.target.checked) return;
+        settings.texturaBase = event.target.value;
+        actualizarTextura();
+      });
+    });
+
+    htmlControls.pivotes.forEach((input) => {
+      input.checked = input.value === settings.modoPivotes;
+      input.addEventListener("change", (event) => {
+        if (!event.target.checked) return;
+        settings.modoPivotes = event.target.value;
+        actualizarTextura();
+      });
+    });
+
+    htmlControls.capturar?.addEventListener("click", () => descargarCaptura());
+    htmlControls.story?.addEventListener("click", () => prepararGrabacion());
+  }
+
+  function syncHtmlPaleta() {
+    const radios = document.querySelectorAll('input[name="paleta-color"]');
+    radios.forEach((radio) => {
+      radio.checked = radio.value === settings.paletaColor;
+    });
+  }
+
+  // --- 7. LOOP ---
+  function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderFrame();
+  }
+
+  window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  htmlControls.capturar?.addEventListener("click", () => descargarCaptura());
-  htmlControls.story?.addEventListener("click", () => prepararGrabacion());
-}
-
-function syncHtmlPaleta() {
-  const radios = document.querySelectorAll('input[name="paleta-color"]');
-  radios.forEach((radio) => {
-    radio.checked = radio.value === settings.paletaColor;
-  });
-}
-
-// --- 7. LOOP ---
-function animate() {
-  requestAnimationFrame(animate);
-  controls.update();
-  renderFrame();
-}
-
-window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-bindHtmlControls();
-syncHtmlPaleta();
-actualizarTextura();
-actualizarOutline();
-actualizarLuces();
-actualizarFondo();
-animate();
+  bindHtmlControls();
+  syncHtmlPaleta();
+  actualizarTextura();
+  actualizarOutline();
+  actualizarLuces();
+  actualizarFondo();
+  animate();
