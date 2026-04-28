@@ -21,41 +21,168 @@ const texturasDisponibles = [
 ];
 const paletasDisponibles = [
   {
-    id: "pink-sky",
-    nombre: "Paleta 1",
+    id: "pink-breeze",
+    nombre: "Pink Breeze",
     principal: "#e8528b",
     secundario: "#92d3e9",
-    terciario: "#633b8f",
+    terciario: "#ffffff",
   },
   {
-    id: "sky-pink",
-    nombre: "Paleta 2",
+    id: "sky-breeze",
+    nombre: "Sky Breeze",
     principal: "#92d3e9",
     secundario: "#e8528b",
-    terciario: "#633b8f",
+    terciario: "#ffffff",
   },
   {
     id: "berry-flare",
     nombre: "Berry Flare",
     principal: "#d12e4f",
-    secundario: "#e8528b",
-    terciario: "#ef7e81",
+    secundario: "#ffdd57",
+    terciario: "#ffdd57",
   },
   {
-    id: "field-energy",
-    nombre: "Field Energy",
+    id: "green-harvest",
+    nombre: "Green Harvest",
     principal: "#33ab58",
     secundario: "#4fb270",
-    terciario: "#c2d158",
+    terciario: "#ffcb24",
   },
   {
-    id: "sunburst",
-    nombre: "Sunburst",
+    id: "sunburst-gold",
+    nombre: "Sunburst Gold",
     principal: "#f49846",
     secundario: "#feca3c",
     terciario: "#f9dc62",
   },
+  {
+    id: "violet-pulse",
+    nombre: "Violet Pulse",
+    principal: "#b26fb1",
+    secundario: "#6f3893",
+    terciario: "#ffffff",
+  },
+  {
+    id: "deep-ocean",
+    nombre: "Deep Ocean",
+    principal: "#006bb7",
+    secundario: "#343390",
+    terciario: "#f9dc62",
+  },
+  {
+    id: "lime-light",
+    nombre: "Lime Light",
+    principal: "#bdd24c",
+    secundario: "#ffffff",
+    terciario: "#ffffff",
+  },
+  {
+    id: "crimson-night",
+    nombre: "Crimson Night",
+    principal: "#f32a4f",
+    secundario: "#343390",
+    terciario: "#f9dc62",
+  },
+  {
+    id: "gold-accent",
+    nombre: "Gold Accent",
+    principal: "#ffdd57",
+    secundario: "#d12e4f",
+    terciario: "#ffffff",
+  },
+  {
+    id: "ocean-light",
+    nombre: "Ocean Light",
+    principal: "#006bb7",
+    secundario: "#92d3e9",
+    terciario: "#ffffff",
+  },
+  {
+    id: "sunset-pop",
+    nombre: "Sunset Pop",
+    principal: "#f32a4f",
+    secundario: "#f49846",
+    terciario: "#feca3c",
+  },
+  {
+    id: "mint-fresh",
+    nombre: "Mint Fresh",
+    principal: "#4fb270",
+    secundario: "#bdd24c",
+    terciario: "#ffffff",
+  },
+  {
+    id: "royal-striker",
+    nombre: "Royal Striker",
+    principal: "#006bb7",
+    secundario: "#ffffff",
+    terciario: "#feca3c",
+  },
+  {
+    id: "crimson-flash",
+    nombre: "Crimson Flash",
+    principal: "#f32a4f",
+    secundario: "#ffffff",
+    terciario: "#343390",
+  },
+  {
+    id: "golden-attack",
+    nombre: "Golden Attack",
+    principal: "#ffdd57",
+    secundario: "#d12e4f",
+    terciario: "#343390",
+  },
+  {
+    id: "emerald-core",
+    nombre: "Emerald Core",
+    principal: "#33ab58",
+    secundario: "#ffffff",
+    terciario: "#feca3c",
+  },
+  {
+    id: "violet-storm",
+    nombre: "Violet Storm",
+    principal: "#6f3893",
+    secundario: "#b26fb1",
+    terciario: "#ffffff",
+  },
+  {
+    id: "sunfire-kit",
+    nombre: "Sunfire Kit",
+    principal: "#f49846",
+    secundario: "#f32a4f",
+    terciario: "#ffffff",
+  },
+  {
+    id: "skyline-united",
+    nombre: "Skyline United",
+    principal: "#92d3e9",
+    secundario: "#006bb7",
+    terciario: "#ffffff",
+  },
+  {
+    id: "lime-strike",
+    nombre: "Lime Strike",
+    principal: "#bdd24c",
+    secundario: "#33ab58",
+    terciario: "#ffffff",
+  },
+  {
+    id: "night-playmaker",
+    nombre: "Night Playmaker",
+    principal: "#343390",
+    secundario: "#f32a4f",
+    terciario: "#ffffff",
+  },
+  {
+    id: "rose-legend",
+    nombre: "Rose Legend",
+    principal: "#e8528b",
+    secundario: "#ffffff",
+    terciario: "#343390",
+  },
 ];
+
 const fuentesDisponibles = ["Impact", "Arial", "Verdana", "Courier New"];
 
 // --- 2. ESTADO GLOBAL (SETTINGS COMPLETOS) ---
@@ -178,7 +305,8 @@ function cargarImagen(path) {
 
 function aplicarPaleta(idPaleta) {
   const paleta =
-    paletasDisponibles.find((item) => item.id === idPaleta) || paletasDisponibles[0];
+    paletasDisponibles.find((item) => item.id === idPaleta) ||
+    paletasDisponibles[0];
   settings.paletaColor = paleta.id;
   settings.colorBloqueA = paleta.principal;
   settings.colorBloqueB = paleta.secundario;
@@ -263,7 +391,12 @@ function actualizarTextura() {
     }
 
     if (nombrePivote === "Pecho") {
-      dibujarNombreNumero(settings.pechoX, settings.pechoY, settings.pechoEscala, false);
+      dibujarNombreNumero(
+        settings.pechoX,
+        settings.pechoY,
+        settings.pechoEscala,
+        false,
+      );
       continue;
     }
 
@@ -504,7 +637,8 @@ function actualizarOutline() {
     material.uniforms.noiseAmplitude.value = settings.outlineIrregularidad;
     material.uniforms.noiseScale.value = settings.outlineEscalaRuido;
     material.uniforms.silhouetteThreshold.value = settings.outlineUmbralSilueta;
-    material.uniforms.silhouetteSoftness.value = settings.outlineSuavidadSilueta;
+    material.uniforms.silhouetteSoftness.value =
+      settings.outlineSuavidadSilueta;
     material.uniforms.downwardSuppress.value = settings.outlineReducirAbajo;
     material.uniforms.downwardSoftness.value = settings.outlineSuavidadAbajo;
   }
@@ -512,7 +646,9 @@ function actualizarOutline() {
   if (!modelo3D) return;
   modelo3D.traverse((c) => {
     if (!c.isMesh) return;
-    const outlineMesh = c.children.find((child) => child.userData?.isOutlineMesh);
+    const outlineMesh = c.children.find(
+      (child) => child.userData?.isOutlineMesh,
+    );
     if (outlineMesh) outlineMesh.visible = settings.outlineActivo;
   });
 }
@@ -574,7 +710,8 @@ function prepararGrabacion() {
 
   mediaRecorder.start();
   recordingTimeout = setTimeout(() => {
-    if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+    if (mediaRecorder && mediaRecorder.state === "recording")
+      mediaRecorder.stop();
   }, 5000);
 }
 
@@ -715,11 +852,20 @@ fTexto.add(settings, "posY", 0, 2048).onChange(actualizarTextura);
 const fFrente = gui.addFolder("Frente NÃºmero");
 fFrente.add(settings, "pechoX", 0, 2048).name("X").onChange(actualizarTextura);
 fFrente.add(settings, "pechoY", 0, 2048).name("Y").onChange(actualizarTextura);
-fFrente.add(settings, "pechoEscala", 0.1, 5).name("Escala").onChange(actualizarTextura);
+fFrente
+  .add(settings, "pechoEscala", 0.1, 5)
+  .name("Escala")
+  .onChange(actualizarTextura);
 
 const fMangaDer = gui.addFolder("Manga Der NÃºmero");
-fMangaDer.add(settings, "mangaDerX", 0, 2048).name("X").onChange(actualizarTextura);
-fMangaDer.add(settings, "mangaDerY", 0, 2048).name("Y").onChange(actualizarTextura);
+fMangaDer
+  .add(settings, "mangaDerX", 0, 2048)
+  .name("X")
+  .onChange(actualizarTextura);
+fMangaDer
+  .add(settings, "mangaDerY", 0, 2048)
+  .name("Y")
+  .onChange(actualizarTextura);
 fMangaDer
   .add(settings, "mangaDerEscala", 0.1, 5)
   .name("Escala")
