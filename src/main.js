@@ -4,6 +4,8 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { HDRLoader } from "three/examples/jsm/loaders/HDRLoader";
 import GUI from "lil-gui";
 
+let textureVersion = 0;
+
 // --- 1. CONFIGURACIÓN Y DATOS ---
 const pivotes = {
   Espalda: { x: 1550, y: 510 },
@@ -13,12 +15,13 @@ const pivotes = {
 };
 
 const texturasDisponibles = [
-  "./tshit_UVs1.png",
-  "./tshit_UVs2.png",
-  "./tshit_UVs3.png",
-  "./tshit_UVs4.png",
-  "./tshit_UVs5.png",
+  "./pattern1.svg",
+  "./pattern2.svg",
+  "./pattern3.svg",
+  "./pattern4.svg",
+  "./pattern5.svg",
 ];
+
 const paletasDisponibles = [
   {
     id: "pink-breeze",
@@ -293,14 +296,69 @@ textTexture.colorSpace = THREE.SRGBColorSpace;
 textTexture.flipY = false;
 
 const imgCache = {};
-function cargarImagen(path) {
-  if (!imgCache[path]) {
-    const img = new Image();
-    img.src = path;
-    img.onload = () => actualizarTextura();
-    imgCache[path] = img;
+
+async function cargarSVGColoreado(path, fillColor) {
+  const cacheKey = `${path}_${fillColor}`;
+
+  if (imgCache[cacheKey]) {
+    return imgCache[cacheKey];
   }
-  return imgCache[path];
+
+  const response = await fetch(path);
+  const svgText = await response.text();
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgText, "image/svg+xml");
+
+  const elements = doc.querySelectorAll("*");
+
+  elements.forEach((el) => {
+    // Solo afectar shapes reales (evita romper defs, gradients, etc.)
+    const tag = el.tagName.toLowerCase();
+
+    const drawableTags = [
+      "path",
+      "rect",
+      "circle",
+      "ellipse",
+      "polygon",
+      "polyline",
+    ];
+
+    if (!drawableTags.includes(tag)) return;
+
+    el.setAttribute("fill", fillColor);
+    el.setAttribute("stroke", fillColor);
+    el.removeAttribute("style");
+  });
+
+  const serializer = new XMLSerializer();
+  const newSVG = serializer.serializeToString(doc);
+
+  const blob = new Blob([newSVG], { type: "image/svg+xml" });
+  const url = URL.createObjectURL(blob);
+
+  const img = new Image();
+  img.src = url;
+
+  await new Promise((resolve) => (img.onload = resolve));
+
+  URL.revokeObjectURL(url);
+
+  imgCache[cacheKey] = img;
+  return img;
+}
+
+const imageCache = {};
+
+function cargarImagen(path) {
+  if (imageCache[path]) return imageCache[path];
+
+  const img = new Image();
+  img.src = path;
+
+  imageCache[path] = img;
+  return img;
 }
 
 function aplicarPaleta(idPaleta) {
@@ -315,102 +373,119 @@ function aplicarPaleta(idPaleta) {
 }
 
 function actualizarTextura() {
+  textureVersion++;
+  const currentVersion = textureVersion;
+
   ctx.clearRect(0, 0, 2048, 2048);
 
   // 1. Color Base
   ctx.fillStyle = settings.colorBloqueA;
   ctx.fillRect(0, 0, 2048, 2048);
 
-  // 2. Bloques/Franjas
+  // 2. Bloques
   if (settings.mostrarBloques) {
     ctx.fillStyle = settings.colorBloqueB;
     ctx.fillRect(0, 0, 2048, 260);
     ctx.fillRect(0, 1625, 2048, 423);
   }
 
-  // 3. PNG de la Playera (Capa superior de detalle)
-  const imgBase = cargarImagen(settings.texturaBase);
-  if (imgBase.complete) {
-    ctx.drawImage(imgBase, 0, 0, 2048, 2048);
-  }
+  // 3. SVG + TODO LO DEMÁS dentro del mismo flujo
+  cargarSVGColoreado(settings.texturaBase, settings.colorBloqueC).then(
+    (imgBase) => {
+      if (currentVersion !== textureVersion) return;
 
-  // 4. Logos
-  if (settings.mostrarLogos) {
-    for (let i = 1; i <= 5; i++) {
-      const imgL = cargarImagen(`./Logo${i}.png`);
-      if (imgL.complete) {
-        const esc = settings[`logo${i}_esc`];
-        const w = imgL.width * esc;
-        const h = imgL.height * esc;
-        ctx.drawImage(
-          imgL,
-          settings[`logo${i}_x`] - w / 2,
-          settings[`logo${i}_y`] - h / 2,
-          w,
-          h,
-        );
+      // SVG
+      ctx.drawImage(imgBase, 0, 0, 2048, 2048);
+
+      // 4. LOGOS
+      if (settings.mostrarLogos) {
+        for (let i = 1; i <= 5; i++) {
+          const imgL = cargarImagen(`./Logo${i}.png`);
+          if (imgL.complete) {
+            const esc = settings[`logo${i}_esc`];
+            const w = imgL.width * esc;
+            const h = imgL.height * esc;
+
+            ctx.drawImage(
+              imgL,
+              settings[`logo${i}_x`] - w / 2,
+              settings[`logo${i}_y`] - h / 2,
+              w,
+              h,
+            );
+          }
+        }
       }
-    }
-  }
 
-  // 5. Texto
-  const gruposPivote = {
-    espalda: ["Espalda"],
-    espalda_manga: ["Espalda", "Manga Der"],
-    espalda_frente: ["Espalda", "Pecho"],
-    espalda_frente_manga: ["Espalda", "Pecho", "Manga Der"],
-  };
-  const pivotesActivos = gruposPivote[settings.modoPivotes] || ["Espalda"];
-  const peso = settings.negrita ? "700" : "500";
+      // 5. TEXTO
+      const gruposPivote = {
+        espalda: ["Espalda"],
+        espalda_manga: ["Espalda", "Manga Der"],
+        espalda_frente: ["Espalda", "Pecho"],
+        espalda_frente_manga: ["Espalda", "Pecho", "Manga Der"],
+      };
 
-  const dibujarNombreNumero = (x, y, escala, incluirNombre) => {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(escala, escala);
-    ctx.fillStyle = settings.colorBloqueC;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+      const pivotesActivos = gruposPivote[settings.modoPivotes] || ["Espalda"];
 
-    if (incluirNombre) {
-      ctx.font = `${peso} ${settings.tamanioNombre}px "${settings.fuente}"`;
-      ctx.fillText(settings.nombre.toUpperCase(), 0, 0);
-      ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
-      ctx.fillText(settings.numero, 0, settings.espaciado);
-    } else {
-      ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
-      ctx.fillText(settings.numero, 0, 0);
-    }
+      const peso = settings.negrita ? "700" : "500";
 
-    ctx.restore();
-  };
+      const dibujarNombreNumero = (x, y, escala, incluirNombre) => {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(escala, escala);
 
-  for (const nombrePivote of pivotesActivos) {
-    if (nombrePivote === "Espalda") {
-      dibujarNombreNumero(settings.posX, settings.posY, settings.escalaX, true);
-      continue;
-    }
+        ctx.fillStyle = settings.colorBloqueC;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
 
-    if (nombrePivote === "Pecho") {
-      dibujarNombreNumero(
-        settings.pechoX,
-        settings.pechoY,
-        settings.pechoEscala,
-        false,
-      );
-      continue;
-    }
+        if (incluirNombre) {
+          ctx.font = `${peso} ${settings.tamanioNombre}px "${settings.fuente}"`;
+          ctx.fillText(settings.nombre.toUpperCase(), 0, 0);
 
-    if (nombrePivote === "Manga Der") {
-      dibujarNombreNumero(
-        settings.mangaDerX,
-        settings.mangaDerY,
-        settings.mangaDerEscala,
-        false,
-      );
-    }
-  }
+          ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
+          ctx.fillText(settings.numero, 0, settings.espaciado);
+        } else {
+          ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
+          ctx.fillText(settings.numero, 0, 0);
+        }
 
-  textTexture.needsUpdate = true;
+        ctx.restore();
+      };
+
+      for (const nombrePivote of pivotesActivos) {
+        if (nombrePivote === "Espalda") {
+          dibujarNombreNumero(
+            settings.posX,
+            settings.posY,
+            settings.escalaX,
+            true,
+          );
+          continue;
+        }
+
+        if (nombrePivote === "Pecho") {
+          dibujarNombreNumero(
+            settings.pechoX,
+            settings.pechoY,
+            settings.pechoEscala,
+            false,
+          );
+          continue;
+        }
+
+        if (nombrePivote === "Manga Der") {
+          dibujarNombreNumero(
+            settings.mangaDerX,
+            settings.mangaDerY,
+            settings.mangaDerEscala,
+            false,
+          );
+        }
+      }
+
+      textTexture.needsUpdate = true;
+    },
+  );
 }
 
 // --- 4. ESCENA 3D Y RENDERER ---
