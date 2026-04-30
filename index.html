@@ -1,18 +1,95 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Personalizador 3D</title>
-    <link rel="stylesheet" href="style.css">
-  <script type="module" crossorigin src="/watermarkmodel/assets/index--tnO5p-H.js"></script>
-</head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script type="module" crossorigin src="/watermarkmodel/assets/index-DIGwN25a.js"></script>
+    <link rel="stylesheet" crossorigin href="/watermarkmodel/assets/index-DfEtxk2j.css">
+  </head>
 
-<body>
-    <div id="ui-container">
-        <input type="text" id="nombreInput" placeholder="Escribe tu nombre..." maxlength="20">
-    </div>
-    <div id="app"></div>
-</body>
+  <body>
+    <aside id="control-panel">
+      <h1>Personalizador</h1>
 
+      <label class="field">
+        <span>Nombre</span>
+        <input type="text" id="control-nombre" maxlength="20" value="JUGADOR" />
+      </label>
+
+      <label class="field">
+        <span>Número</span>
+        <input type="text" id="control-numero" maxlength="3" value="10" />
+      </label>
+
+      <fieldset class="field">
+        <legend>Textura Base</legend>
+        <label
+          ><input
+            type="radio"
+            name="textura-base"
+            value="./pattern1.svg"
+            checked
+          />
+          1</label
+        >
+        <label
+          ><input type="radio" name="textura-base" value="./pattern2.svg" />
+          2</label
+        >
+        <label
+          ><input type="radio" name="textura-base" value="./pattern3.svg" />
+          3</label
+        >
+        <label
+          ><input type="radio" name="textura-base" value="./pattern4.svg" />
+          4</label
+        >
+        <label
+          ><input type="radio" name="textura-base" value="./pattern5.svg" />
+          5</label
+        >
+      </fieldset>
+
+      <fieldset class="field">
+        <legend>Paletas Aprobadas</legend>
+        <div id="control-paletas" class="palette-list"></div>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend>Pivotes</legend>
+        <label
+          ><input type="radio" name="modo-pivotes" value="espalda" checked />
+          Espalda</label
+        >
+        <label
+          ><input type="radio" name="modo-pivotes" value="espalda_manga" />
+          Espalda y Manga</label
+        >
+        <label
+          ><input type="radio" name="modo-pivotes" value="espalda_frente" />
+          Espalda y Frente</label
+        >
+        <label
+          ><input
+            type="radio"
+            name="modo-pivotes"
+            value="espalda_frente_manga"
+          />
+          Espalda + Frente y Manga</label
+        >
+      </fieldset>
+
+      <label class="field">
+        <span>Color Contorno</span>
+        <input type="color" id="control-color-outline" value="#ffffff" />
+      </label>
+
+      <div class="actions">
+        <button id="control-capturar" type="button">Capturar PNG</button>
+        <button id="control-story" type="button">Grabar Story</button>
+      </div>
+    </aside>
+    <div id="app"></div>
+  </body>
 </html>
