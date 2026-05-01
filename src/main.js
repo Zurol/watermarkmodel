@@ -24,6 +24,20 @@ const texturasDisponibles = [
 
 const paletasDisponibles = [
   {
+    id: "sunset-pop",
+    nombre: "Sunset Pop",
+    principal: "#f32a4f",
+    secundario: "#f49846",
+    terciario: "#feca3c",
+  },
+  {
+    id: "mint-fresh",
+    nombre: "Mint Fresh",
+    principal: "#4fb270",
+    secundario: "#bdd24c",
+    terciario: "#ffffff",
+  },
+  {
     id: "pink-breeze",
     nombre: "Pink Breeze",
     principal: "#e8528b",
@@ -101,20 +115,6 @@ const paletasDisponibles = [
     terciario: "#ffffff",
   },
   {
-    id: "sunset-pop",
-    nombre: "Sunset Pop",
-    principal: "#f32a4f",
-    secundario: "#f49846",
-    terciario: "#feca3c",
-  },
-  {
-    id: "mint-fresh",
-    nombre: "Mint Fresh",
-    principal: "#4fb270",
-    secundario: "#bdd24c",
-    terciario: "#ffffff",
-  },
-  {
     id: "royal-striker",
     nombre: "Royal Striker",
     principal: "#006bb7",
@@ -185,7 +185,7 @@ const paletasDisponibles = [
     terciario: "#343390",
   },
   {
-    id: "rose-legend",
+    id: "black-toon",
     nombre: "Rose Legend",
     principal: "#0d0d0d",
     secundario: "#454545",
