@@ -514,7 +514,11 @@ const bgScene = new THREE.Scene();
 const bgCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 const bgMesh = new THREE.Mesh(
   new THREE.PlaneGeometry(2, 2),
-  new THREE.MeshBasicMaterial({ depthTest: false, depthWrite: false }),
+  new THREE.MeshBasicMaterial({
+    depthTest: true,
+    depthWrite: true,
+    toneMapped: true,
+  }),
 );
 bgScene.add(bgMesh);
 
@@ -568,6 +572,7 @@ const logoMaterial = new THREE.MeshBasicMaterial({
   transparent: true,
   depthTest: false,
   depthWrite: false,
+  toneMapped: false,
 });
 
 const logoMesh = new THREE.Mesh(
@@ -1094,8 +1099,9 @@ function bindHtmlControls() {
     for (const paleta of paletasDisponibles) {
       const option = document.createElement("label");
       option.className = "palette-option";
+      option.title = paleta.nombre;
       option.innerHTML = `
-          <input type="radio" name="paleta-color" value="${paleta.id}">
+          <input type="radio" name="paleta-color" value="${paleta.id}" aria-label="${paleta.nombre}">
           <!--span class="palette-label">${paleta.nombre}</span-->
           <span class="palette-swatch">
             <span style="background:${paleta.principal}"></span>
