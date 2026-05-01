@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <title>Personalizador 3D</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script type="module" crossorigin src="/watermarkmodel/assets/index-DIGwN25a.js"></script>
-    <link rel="stylesheet" crossorigin href="/watermarkmodel/assets/index-DfEtxk2j.css">
+    <script type="module" crossorigin src="/watermarkmodel/assets/index-BjMlWY6y.js"></script>
+    <link rel="stylesheet" crossorigin href="/watermarkmodel/assets/index-DRAygMMn.css">
   </head>
 
   <body>
@@ -19,11 +19,11 @@
 
       <label class="field">
         <span>Número</span>
-        <input type="text" id="control-numero" maxlength="3" value="10" />
+        <input type="number" id="control-numero" maxlength="2" value="10" />
       </label>
 
       <fieldset class="field">
-        <legend>Textura Base</legend>
+        <legend>Patrones Base</legend>
         <label
           ><input
             type="radio"
@@ -35,7 +35,7 @@
         >
         <label
           ><input type="radio" name="textura-base" value="./pattern2.svg" />
-          2</label
+          Hexágonos</label
         >
         <label
           ><input type="radio" name="textura-base" value="./pattern3.svg" />
@@ -47,28 +47,23 @@
         >
         <label
           ><input type="radio" name="textura-base" value="./pattern5.svg" />
-          5</label
+          Ninguno</label
         >
       </fieldset>
 
       <fieldset class="field">
-        <legend>Paletas Aprobadas</legend>
-        <div id="control-paletas" class="palette-list"></div>
-      </fieldset>
-
-      <fieldset class="field">
-        <legend>Pivotes</legend>
+        <legend>Nombre y número</legend>
         <label
           ><input type="radio" name="modo-pivotes" value="espalda" checked />
           Espalda</label
         >
         <label
           ><input type="radio" name="modo-pivotes" value="espalda_manga" />
-          Espalda y Manga</label
+          Espalda + Manga</label
         >
         <label
           ><input type="radio" name="modo-pivotes" value="espalda_frente" />
-          Espalda y Frente</label
+          Espalda + Abdomen</label
         >
         <label
           ><input
@@ -76,11 +71,16 @@
             name="modo-pivotes"
             value="espalda_frente_manga"
           />
-          Espalda + Frente y Manga</label
+          Espalda + Manga + Abdomen</label
         >
       </fieldset>
 
-      <label class="field">
+      <fieldset class="field">
+        <legend>Paletas Disponibles</legend>
+        <div id="control-paletas" class="palette-list"></div>
+      </fieldset>
+
+      <label class="field hidden">
         <span>Color Contorno</span>
         <input type="color" id="control-color-outline" value="#ffffff" />
       </label>
