@@ -184,6 +184,13 @@ const paletasDisponibles = [
     secundario: "#ffffff",
     terciario: "#343390",
   },
+  {
+    id: "rose-legend",
+    nombre: "Rose Legend",
+    principal: "#0d0d0d",
+    secundario: "#454545",
+    terciario: "#ffffff",
+  },
 ];
 
 const fuentesDisponibles = ["Impact", "Arial", "Verdana", "Courier New"];
@@ -264,7 +271,7 @@ const settings = {
   metalness: 0.9,
   outlineActivo: true,
   outlineColor: "#ffffff",
-  outlineGrosor: 0.004,
+  outlineGrosor: 0.005,
   outlineIrregularidad: 9,
   outlineEscalaRuido: 0.5,
   outlineUmbralSilueta: 0,
