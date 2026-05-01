@@ -187,6 +187,9 @@ const paletasDisponibles = [
 ];
 
 const fuentesDisponibles = ["Impact", "Arial", "Verdana", "Courier New"];
+const anchoMaximoNombreEspalda = 650;
+const maxCaracteresNumero = 2;
+const limitarNumero = (numero) => String(numero).slice(0, maxCaracteresNumero);
 
 // --- 2. ESTADO GLOBAL (SETTINGS COMPLETOS) ---
 const settings = {
@@ -286,7 +289,7 @@ textCanvas.height = 2048;
 // Previsualización Inferior Izquierda
 textCanvas.style.cssText = `
     position: absolute; bottom: 20px; left: 20px; 
-    width: 256px; height: 256px; 
+    width: 256px; height: 256px; display:none;
     border: 2px solid white; z-index: 1000; background: #000;
   `;
 document.body.appendChild(textCanvas);
@@ -439,14 +442,25 @@ function actualizarTextura() {
         ctx.textBaseline = "middle";
 
         if (incluirNombre) {
+          const nombre = settings.nombre.toUpperCase();
+          const anchoMaximoNombre =
+            anchoMaximoNombreEspalda / Math.max(escala, 0.001);
           ctx.font = `${peso} ${settings.tamanioNombre}px "${settings.fuente}"`;
-          ctx.fillText(settings.nombre.toUpperCase(), 0, 0);
+          const anchoNombre = ctx.measureText(nombre).width;
+          const escalaNombre =
+            anchoNombre > anchoMaximoNombre
+              ? anchoMaximoNombre / anchoNombre
+              : 1;
+          const tamanioNombre = settings.tamanioNombre * escalaNombre;
+
+          ctx.font = `${peso} ${tamanioNombre}px "${settings.fuente}"`;
+          ctx.fillText(nombre, 0, 0);
 
           ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
-          ctx.fillText(settings.numero, 0, settings.espaciado);
+          ctx.fillText(limitarNumero(settings.numero), 0, settings.espaciado);
         } else {
           ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
-          ctx.fillText(settings.numero, 0, 0);
+          ctx.fillText(limitarNumero(settings.numero), 0, 0);
         }
 
         ctx.restore();
@@ -882,6 +896,7 @@ new GLTFLoader().load("./TshirtPajaro.glb", (gltf) => {
 
 // --- 6. GUI (TODOS LOS MENÚS RESTAURADOS) ---
 const gui = new GUI();
+gui.hide();
 
 // Carpeta 1: Colores y Prenda
 const fPrenda = gui.addFolder("Configuración de Prenda");
@@ -943,7 +958,12 @@ for (let i = 1; i <= 5; i++) {
 // Carpeta 3: Texto y Pivotes
 const fTexto = gui.addFolder("Personalización Texto");
 fTexto.add(settings, "nombre").onChange(actualizarTextura);
-fTexto.add(settings, "numero").onChange(actualizarTextura);
+const numeroGui = fTexto.add(settings, "numero").onChange((value) => {
+  settings.numero = limitarNumero(value);
+  numeroGui.updateDisplay();
+  if (htmlControls.numero) htmlControls.numero.value = settings.numero;
+  actualizarTextura();
+});
 fTexto
   .add(settings, "posicionPredefinida", Object.keys(pivotes))
   .name("Pivote")
@@ -1085,7 +1105,9 @@ function bindHtmlControls() {
   });
 
   htmlControls.numero.addEventListener("input", (event) => {
-    settings.numero = event.target.value;
+    settings.numero = limitarNumero(event.target.value);
+    event.target.value = settings.numero;
+    numeroGui.updateDisplay();
     actualizarTextura();
   });
 
@@ -1162,6 +1184,18 @@ window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.key.toLowerCase() === "#") {
+    if (gui._hidden) {
+      gui.show();
+      textCanvas.style.display = "block"; // Muestra también el canvas si quieres
+    } else {
+      gui.hide();
+      textCanvas.style.display = "none"; // Esconde ambos
+    }
+  }
 });
 
 bindHtmlControls();
