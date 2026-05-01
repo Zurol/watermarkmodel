@@ -145,7 +145,9 @@ fieldset.field label {
   color: #0a0a0c;
   background: #f5f7fb;
   cursor: pointer;
-  transition: transform 0.18s ease, opacity 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease;
 }
 
 .actions button:hover {
@@ -174,14 +176,17 @@ fieldset.field label {
 }
 
 span.palette-swatch {
-    height: 50px;
-    width: 120px;
+  height: 50px;
+  width: 120px;
 }
 
 span.palette-swatch span {
-    display: list-item;
+  display: list-item;
 }
 
+.hidden {
+  display: none;
+}
 @media (max-width: 900px) {
   #control-panel {
     position: static;
