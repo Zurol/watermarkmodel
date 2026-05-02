@@ -277,7 +277,7 @@ const settings = {
   exposure: 0.25,
   roughness: 0.9,
   metalness: 0.9,
-  outlineActivo: true,
+  outlineActivo: false,
   outlineColor: "#ffffff",
   outlineGrosor: 0.005,
   outlineIrregularidad: 9,
@@ -286,6 +286,11 @@ const settings = {
   outlineSuavidadSilueta: 0.01,
   outlineReducirAbajo: 1,
   outlineSuavidadAbajo: 0.01,
+  siluetaExteriorActiva: true,
+  siluetaExteriorColor: "#ffffff",
+  siluetaExteriorGrosor: 8,
+  siluetaExteriorOpacidad: 0.8,
+  siluetaExteriorIrregularidad: 0,
   emissiveIntensity: 0,
   colorEmissive: "#000000",
   mostrarPiso: true,
@@ -540,6 +545,103 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = settings.exposure;
 renderer.shadowMap.enabled = true;
 document.getElementById("app").appendChild(renderer.domElement);
+
+const maskMaterial = new THREE.MeshBasicMaterial({
+  color: 0xffffff,
+  side: THREE.FrontSide,
+});
+const silhouetteTarget = new THREE.WebGLRenderTarget(1, 1, {
+  depthBuffer: true,
+  stencilBuffer: false,
+});
+silhouetteTarget.texture.minFilter = THREE.LinearFilter;
+silhouetteTarget.texture.magFilter = THREE.LinearFilter;
+silhouetteTarget.texture.generateMipmaps = false;
+
+const silhouetteScene = new THREE.Scene();
+const silhouetteCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+const silhouetteMaterial = new THREE.ShaderMaterial({
+  uniforms: {
+    maskTexture: { value: silhouetteTarget.texture },
+    resolution: { value: new THREE.Vector2(1, 1) },
+    outlineColor: { value: new THREE.Color(settings.siluetaExteriorColor) },
+    outlineWidth: { value: settings.siluetaExteriorGrosor },
+    opacity: { value: settings.siluetaExteriorOpacidad },
+    noiseAmount: { value: settings.siluetaExteriorIrregularidad },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+
+    void main() {
+      vUv = uv;
+      gl_Position = vec4(position.xy, 0.0, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D maskTexture;
+    uniform vec2 resolution;
+    uniform vec3 outlineColor;
+    uniform float outlineWidth;
+    uniform float opacity;
+    uniform float noiseAmount;
+    varying vec2 vUv;
+
+    float hash(vec2 p) {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+    }
+
+    void main() {
+      float center = texture2D(maskTexture, vUv).r;
+      vec2 px = 1.0 / resolution;
+      float noise = (hash(floor(vUv * resolution * 0.35)) * 2.0 - 1.0) * noiseAmount;
+      float radius = max(outlineWidth + noise, 0.0);
+
+      float outer = 0.0;
+      outer = max(outer, texture2D(maskTexture, vUv + vec2(px.x * radius, 0.0)).r);
+      outer = max(outer, texture2D(maskTexture, vUv - vec2(px.x * radius, 0.0)).r);
+      outer = max(outer, texture2D(maskTexture, vUv + vec2(0.0, px.y * radius)).r);
+      outer = max(outer, texture2D(maskTexture, vUv - vec2(0.0, px.y * radius)).r);
+      outer = max(outer, texture2D(maskTexture, vUv + px * radius).r);
+      outer = max(outer, texture2D(maskTexture, vUv - px * radius).r);
+      outer = max(outer, texture2D(maskTexture, vUv + vec2(px.x, -px.y) * radius).r);
+      outer = max(outer, texture2D(maskTexture, vUv + vec2(-px.x, px.y) * radius).r);
+
+      float edge = max(outer - center, 0.0);
+      if (edge <= 0.001) discard;
+      gl_FragColor = vec4(outlineColor, edge * opacity);
+    }
+  `,
+  transparent: true,
+  depthTest: false,
+  depthWrite: false,
+  toneMapped: false,
+});
+const silhouetteQuad = new THREE.Mesh(
+  new THREE.PlaneGeometry(2, 2),
+  silhouetteMaterial,
+);
+silhouetteScene.add(silhouetteQuad);
+
+function actualizarSiluetaExterior() {
+  silhouetteMaterial.uniforms.outlineColor.value.set(
+    settings.siluetaExteriorColor,
+  );
+  silhouetteMaterial.uniforms.outlineWidth.value =
+    settings.siluetaExteriorGrosor;
+  silhouetteMaterial.uniforms.opacity.value = settings.siluetaExteriorOpacidad;
+  silhouetteMaterial.uniforms.noiseAmount.value =
+    settings.siluetaExteriorIrregularidad;
+}
+
+function actualizarRenderTargets() {
+  const pixelRatio = renderer.getPixelRatio();
+  const width = Math.max(1, Math.floor(window.innerWidth * pixelRatio));
+  const height = Math.max(1, Math.floor(window.innerHeight * pixelRatio));
+  silhouetteTarget.setSize(width, height);
+  silhouetteMaterial.uniforms.resolution.value.set(width, height);
+}
+
+actualizarRenderTargets();
 
 // Fondo para Imagen
 const bgScene = new THREE.Scene();
@@ -867,6 +969,42 @@ function actualizarMateriales() {
   });
 }
 
+function renderSiluetaExterior() {
+  if (!settings.siluetaExteriorActiva || !modelo3D) return;
+
+  const previousRenderTarget = renderer.getRenderTarget();
+  const previousOverrideMaterial = scene.overrideMaterial;
+  const previousBackground = scene.background;
+  const previousClearColor = renderer.getClearColor(new THREE.Color());
+  const previousClearAlpha = renderer.getClearAlpha();
+  const previousAutoClear = renderer.autoClear;
+  const hiddenOutlineMeshes = [];
+
+  modelo3D.traverse((c) => {
+    if (!c.userData?.isOutlineMesh || !c.visible) return;
+    hiddenOutlineMeshes.push(c);
+    c.visible = false;
+  });
+
+  scene.overrideMaterial = maskMaterial;
+  scene.background = null;
+  renderer.setRenderTarget(silhouetteTarget);
+  renderer.setClearColor(0x000000, 1);
+  renderer.clear(true, true, true);
+  renderer.render(scene, camera);
+
+  scene.overrideMaterial = previousOverrideMaterial;
+  scene.background = previousBackground;
+  for (const mesh of hiddenOutlineMeshes) mesh.visible = true;
+
+  renderer.setRenderTarget(previousRenderTarget);
+  renderer.setClearColor(previousClearColor, previousClearAlpha);
+  renderer.autoClear = false;
+  renderer.clearDepth();
+  renderer.render(silhouetteScene, silhouetteCamera);
+  renderer.autoClear = previousAutoClear;
+}
+
 function renderFrame() {
   if (settings.usarImagenFondo && bgMesh.material.map) {
     renderer.autoClear = false;
@@ -874,11 +1012,13 @@ function renderFrame() {
     renderer.render(bgScene, bgCamera);
     renderer.clearDepth();
     renderer.render(scene, camera);
+    renderSiluetaExterior();
     renderer.autoClear = true;
     return;
   }
 
   renderer.render(scene, camera);
+  renderSiluetaExterior();
 }
 
 const pmremGenerator = new THREE.PMREMGenerator(renderer);
@@ -1080,6 +1220,28 @@ fOutline
   .name("Suavidad Axila")
   .onChange(actualizarOutline);
 
+const fSiluetaExterior = gui.addFolder("Silueta Exterior");
+fSiluetaExterior
+  .add(settings, "siluetaExteriorActiva")
+  .name("Activar Silueta")
+  .onChange(actualizarSiluetaExterior);
+fSiluetaExterior
+  .addColor(settings, "siluetaExteriorColor")
+  .name("Color")
+  .onChange(actualizarSiluetaExterior);
+fSiluetaExterior
+  .add(settings, "siluetaExteriorGrosor", 0.5, 12, 0.1)
+  .name("Grosor px")
+  .onChange(actualizarSiluetaExterior);
+fSiluetaExterior
+  .add(settings, "siluetaExteriorOpacidad", 0, 1, 0.01)
+  .name("Opacidad")
+  .onChange(actualizarSiluetaExterior);
+fSiluetaExterior
+  .add(settings, "siluetaExteriorIrregularidad", 0, 4, 0.01)
+  .name("Irregularidad")
+  .onChange(actualizarSiluetaExterior);
+
 const fEscena = gui.addFolder("Iluminación y Fondo");
 fEscena
   .add(settings, "exposure", 0, 2)
@@ -1205,6 +1367,7 @@ window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  actualizarRenderTargets();
 });
 
 window.addEventListener("keydown", (event) => {
