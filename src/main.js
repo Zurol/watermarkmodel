@@ -225,7 +225,7 @@ const settings = {
   mangaDerY: 1930,
   mangaDerEscala: 0.4,
   colorTexto: paletasDisponibles[0].terciario,
-  texturaBase: texturasDisponibles[1],
+  texturaBase: texturasDisponibles[0],
   paletaColor: paletasDisponibles[0].id,
   colorBloqueA: paletasDisponibles[0].principal,
   colorBloqueB: paletasDisponibles[0].secundario,

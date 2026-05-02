@@ -1,8 +1,24 @@
 /* Regular */
 @font-face {
   font-family: "Sharp Grotesk";
-  src: url("/fonts/SharpGrotesk-Regular.woff2") format("woff2");
+  src: url("/fonts/SharpGrotesk-Light15.woff2") format("woff2");
+  font-weight: 300; /* Normal */
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Sharp Grotesk";
+  src: url("/fonts/SharpGrotesk-Light25.woff2") format("woff2");
   font-weight: 400; /* Normal */
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Sharp Grotesk";
+  src: url("/fonts/SharpGrotesk-Book20.woff2") format("woff2");
+  font-weight: 100; /* Normal */
   font-style: normal;
   font-display: swap;
 }
@@ -10,7 +26,7 @@
 /* SemiBold */
 @font-face {
   font-family: "Sharp Grotesk";
-  src: url("/fonts/SharpGrotesk-SemiBold25.woff2") format("woff2");
+  src: url("/fonts/SharpGrotesk-Bold20.woff2") format("woff2");
   font-weight: 600; /* Valor numérico para SemiBold */
   font-style: normal;
   font-display: swap;
@@ -19,7 +35,7 @@
 /* Bold */
 @font-face {
   font-family: "Sharp Grotesk";
-  src: url("/fonts/SharpGrotesk-Bold.woff2") format("woff2");
+  src: url("/fonts/SharpGrotesk-SemiBold25.woff2") format("woff2");
   font-weight: 700; /* Bold */
   font-style: normal;
   font-display: swap;
@@ -61,6 +77,20 @@ body {
 }
 
 #control-panel h1 {
+  font-family: "Sharp Grotesk";
+  font-weight: 700;
+}
+
+#control-panel label span {
+  font-family: "Sharp Grotesk";
+  font-weight: 600;
+}
+
+#control-panel.field {
+  font-weight: 100;
+}
+
+#control-panel h1 {
   margin: 0 0 18px;
   font-size: 24px;
   line-height: 1.1;
@@ -82,6 +112,7 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgba(245, 247, 251, 0.72);
+  font-weight: 700;
 }
 
 .field input[type="text"],
@@ -93,6 +124,8 @@ body {
   background: rgba(255, 255, 255, 0.06);
   color: #f5f7fb;
   outline: none;
+  font-weight: 100;
+  font-variant: all-small-caps;
 }
 
 .field input[type="text"]:focus {
@@ -126,6 +159,7 @@ fieldset.field label {
   margin: 8px 0;
   font-size: 14px;
   color: #f5f7fb;
+  font-weight: 100;
 }
 
 .palette-list {
@@ -193,21 +227,33 @@ fieldset.field label {
 .actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  /*gap: 12px;*/
 }
 
 .actions button {
   border: 0;
-  border-radius: 14px;
-  padding: 13px 14px;
+  padding: 13px 4px;
   font: inherit;
   font-weight: 600;
+  text-transform: uppercase;
+  font-size: 10pt;
   color: #0a0a0c;
   background: #f5f7fb;
   cursor: pointer;
   transition:
     transform 0.18s ease,
     opacity 0.18s ease;
+}
+
+button.buttonLeft {
+  border-radius: 20px 0px 0px 20px;
+  background: #ffd040;
+}
+
+button.buttonRight {
+  border-radius: 0px 20px 20px 0px;
+  background: #da4f49;
+  color: unset;
 }
 
 .actions button:hover {
