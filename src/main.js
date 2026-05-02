@@ -22,6 +22,9 @@ const texturasDisponibles = [
   "./pattern5.svg",
 ];
 
+const obtenerLogoActivo = () =>
+  texturasDisponibles.indexOf(settings.texturaBase) + 1;
+
 const paletasDisponibles = [
   {
     id: "sunset-pop",
@@ -231,21 +234,26 @@ const settings = {
   mostrarBloques: true,
   mostrarLogos: true,
   // Logos con tope de escala 10
-  logo1_x: 700,
-  logo1_y: 630,
-  logo1_esc: 0.8,
-  logo2_x: 1548,
-  logo2_y: 450,
-  logo2_esc: 0.15,
-  logo3_x: 1024,
-  logo3_y: 1100,
-  logo3_esc: 0.2,
-  logo4_x: 1700,
-  logo4_y: 900,
-  logo4_esc: 0.12,
-  logo5_x: 340,
-  logo5_y: 900,
-  logo5_esc: 0.12,
+  logo1_x: 555,
+  logo1_y: 686,
+  logo1_esc: 1.72,
+  logo1_rot: 0,
+  logo2_x: 700,
+  logo2_y: 630,
+  logo2_esc: 0.8,
+  logo2_rot: 0,
+  logo3_x: 700,
+  logo3_y: 660,
+  logo3_esc: 0.9,
+  logo3_rot: 0,
+  logo4_x: 700,
+  logo4_y: 630,
+  logo4_esc: 0.8,
+  logo4_rot: 0,
+  logo5_x: 700,
+  logo5_y: 630,
+  logo5_esc: 0.8,
+  logo5_rot: 0,
   // Iluminación
   intensidadLuzAmbiente: 3.65,
   intensidadLuzPrincipal: 10,
@@ -365,6 +373,7 @@ function cargarImagen(path) {
   if (imageCache[path]) return imageCache[path];
 
   const img = new Image();
+  img.onload = () => actualizarTextura();
   img.src = path;
 
   imageCache[path] = img;
@@ -409,20 +418,22 @@ function actualizarTextura() {
 
       // 4. LOGOS
       if (settings.mostrarLogos) {
-        for (let i = 1; i <= 5; i++) {
-          const imgL = cargarImagen(`./Logo${i}.png`);
+        const logoActivo = obtenerLogoActivo();
+        if (logoActivo >= 1) {
+          const imgL = cargarImagen(`./Logo${logoActivo}.png`);
           if (imgL.complete) {
-            const esc = settings[`logo${i}_esc`];
+            const esc = settings[`logo${logoActivo}_esc`];
             const w = imgL.width * esc;
             const h = imgL.height * esc;
+            const x = settings[`logo${logoActivo}_x`];
+            const y = settings[`logo${logoActivo}_y`];
+            const rot = (settings[`logo${logoActivo}_rot`] * Math.PI) / 180;
 
-            ctx.drawImage(
-              imgL,
-              settings[`logo${i}_x`] - w / 2,
-              settings[`logo${i}_y`] - h / 2,
-              w,
-              h,
-            );
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(rot);
+            ctx.drawImage(imgL, -w / 2, -h / 2, w, h);
+            ctx.restore();
           }
         }
       }
@@ -950,7 +961,7 @@ fPrenda
 const fLogos = gui.addFolder("Control de Logos (5)");
 fLogos
   .add(settings, "mostrarLogos")
-  .name("Ver todos")
+  .name("Ver logo del pattern")
   .onChange(actualizarTextura);
 for (let i = 1; i <= 5; i++) {
   const s = fLogos.addFolder(`Logo ${i}`);
@@ -958,6 +969,9 @@ for (let i = 1; i <= 5; i++) {
   s.add(settings, `logo${i}_y`, 0, 2048).name("Y").onChange(actualizarTextura);
   s.add(settings, `logo${i}_esc`, 0.01, 10)
     .name("Escala")
+    .onChange(actualizarTextura);
+  s.add(settings, `logo${i}_rot`, 0, 360, 1)
+    .name("Rotaci\u00f3n")
     .onChange(actualizarTextura);
   s.close();
 }
