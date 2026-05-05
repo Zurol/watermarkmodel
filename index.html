@@ -8,6 +8,15 @@
   </head>
 
   <body>
+    <button
+      id="control-panel-toggle"
+      class="panel-toggle"
+      type="button"
+      aria-controls="control-panel"
+      aria-expanded="false"
+    >
+      Ajustes
+    </button>
     <aside id="control-panel">
       <h1>Personalizador</h1>
 
@@ -86,13 +95,17 @@
 
       <div class="actions">
         <button id="control-capturar" class="buttonLeft" type="button">
-          Capturar Imagen
+          Video Vertical
         </button>
         <button id="control-story" class="buttonRight" type="button">
-          Grabar Video
+          Video Horizontal
         </button>
       </div>
     </aside>
+    <div id="canvas-loader" class="canvas-loader" role="status" aria-live="polite">
+      <div class="loader-mark"></div>
+      <span>Cargando</span>
+    </div>
     <div id="app"></div>
     <script type="module" src="src/main.js"></script>
   </body>

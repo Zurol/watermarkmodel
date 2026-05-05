@@ -118,34 +118,6 @@ const paletasDisponibles = [
     terciario: "#ffffff",
   },
   {
-    id: "royal-striker",
-    nombre: "Royal Striker",
-    principal: "#006bb7",
-    secundario: "#ffffff",
-    terciario: "#feca3c",
-  },
-  {
-    id: "crimson-flash",
-    nombre: "Crimson Flash",
-    principal: "#f32a4f",
-    secundario: "#ffffff",
-    terciario: "#343390",
-  },
-  {
-    id: "golden-attack",
-    nombre: "Golden Attack",
-    principal: "#ffdd57",
-    secundario: "#d12e4f",
-    terciario: "#343390",
-  },
-  {
-    id: "emerald-core",
-    nombre: "Emerald Core",
-    principal: "#33ab58",
-    secundario: "#ffffff",
-    terciario: "#feca3c",
-  },
-  {
     id: "violet-storm",
     nombre: "Violet Storm",
     principal: "#6f3893",
@@ -200,6 +172,7 @@ const fuentesDisponibles = ["Impact", "Arial", "Verdana", "Courier New"];
 const anchoMaximoNombreEspalda = 650;
 const maxCaracteresNumero = 2;
 const limitarNumero = (numero) => String(numero).slice(0, maxCaracteresNumero);
+const inclinacionPlayeraCuello = THREE.MathUtils.degToRad(5);
 
 // --- 2. ESTADO GLOBAL (SETTINGS COMPLETOS) ---
 const settings = {
@@ -271,6 +244,12 @@ const settings = {
   imagenFondoPath: "./FONDOPLAYERA.png",
   colorFondo: "#101010",
   colorFondo2: "#2e4366",
+  logoPasaHorizontalX: -0.65,
+  logoPasaHorizontalY: 0.6,
+  logoPasaHorizontalEscala: 0.5,
+  logoPasaVerticalX: -0.5,
+  logoPasaVerticalY: 0.76,
+  logoPasaVerticalEscala: 0.38,
   // HDRI y Material
   usarHDRI: true,
   intensidadHDRI: 0.35,
@@ -296,7 +275,7 @@ const settings = {
   mostrarPiso: true,
   opacidadSombra: 0.3,
   // Acciones
-  grabarVideo: () => prepararGrabacion(),
+  grabarVideo: () => prepararGrabacion("horizontal"),
   descargarImagen: () => descargarCaptura(),
 };
 
@@ -414,8 +393,8 @@ function actualizarTextura() {
   }
 
   // 3. SVG + TODO LO DEMÁS dentro del mismo flujo
-  cargarSVGColoreado(settings.texturaBase, settings.colorBloqueC).then(
-    (imgBase) => {
+  cargarSVGColoreado(settings.texturaBase, settings.colorBloqueC)
+    .then((imgBase) => {
       if (currentVersion !== textureVersion) return;
 
       // SVG
@@ -521,30 +500,71 @@ function actualizarTextura() {
       }
 
       textTexture.needsUpdate = true;
-    },
-  );
+      marcarRecursoInicialListo("textura");
+    })
+    .catch((error) => {
+      console.error("No se pudo cargar la textura base", error);
+      textTexture.needsUpdate = true;
+      marcarRecursoInicialListo("textura");
+    });
 }
 
 // --- 4. ESCENA 3D Y RENDERER ---
+const appContainer = document.getElementById("app");
+const loaderElement = document.getElementById("canvas-loader");
+const recursosInicialesPendientes = new Set([
+  "fondo",
+  "logoPasaElBalon",
+  "hdri",
+  "modelo",
+  "textura",
+]);
+
+function marcarRecursoInicialListo(nombre) {
+  recursosInicialesPendientes.delete(nombre);
+  if (recursosInicialesPendientes.size > 0) return;
+
+  requestAnimationFrame(() => {
+    renderFrame();
+    loaderElement?.classList.add("is-hidden");
+  });
+}
+
+function obtenerTamanoCanvas() {
+  const rect = appContainer.getBoundingClientRect();
+  return {
+    width: Math.max(1, Math.floor(rect.width || window.innerWidth)),
+    height: Math.max(1, Math.floor(rect.height || window.innerHeight)),
+  };
+}
+
+let tamanoCanvas = obtenerTamanoCanvas();
+
+function canvasEsVertical() {
+  return tamanoCanvas.height > tamanoCanvas.width;
+}
+
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
   75,
-  window.innerWidth / window.innerHeight,
+  tamanoCanvas.width / tamanoCanvas.height,
   0.1,
   1000,
 );
-camera.position.set(0, 0, -0.75);
+camera.position.set(0, 0, -0.85);
 
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
   preserveDrawingBuffer: true,
 });
 renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(tamanoCanvas.width, tamanoCanvas.height, false);
+renderer.domElement.style.width = "100%";
+renderer.domElement.style.height = "100%";
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = settings.exposure;
 renderer.shadowMap.enabled = true;
-document.getElementById("app").appendChild(renderer.domElement);
+appContainer.appendChild(renderer.domElement);
 
 const maskMaterial = new THREE.MeshBasicMaterial({
   color: 0xffffff,
@@ -635,8 +655,8 @@ function actualizarSiluetaExterior() {
 
 function actualizarRenderTargets() {
   const pixelRatio = renderer.getPixelRatio();
-  const width = Math.max(1, Math.floor(window.innerWidth * pixelRatio));
-  const height = Math.max(1, Math.floor(window.innerHeight * pixelRatio));
+  const width = Math.max(1, Math.floor(tamanoCanvas.width * pixelRatio));
+  const height = Math.max(1, Math.floor(tamanoCanvas.height * pixelRatio));
   silhouetteTarget.setSize(width, height);
   silhouetteMaterial.uniforms.resolution.value.set(width, height);
 }
@@ -665,6 +685,7 @@ function actualizarFondo() {
       bgMesh.material.map = fondoImagenTexture;
       bgMesh.material.needsUpdate = true;
       scene.background = null;
+      marcarRecursoInicialListo("fondo");
       return;
     }
 
@@ -676,10 +697,12 @@ function actualizarFondo() {
         bgMesh.material.map = fondoImagenTexture;
         bgMesh.material.needsUpdate = true;
         scene.background = null;
+        marcarRecursoInicialListo("fondo");
       },
       undefined,
       (error) => {
         console.error("No se pudo cargar FONDOPLAYERA.png", error);
+        marcarRecursoInicialListo("fondo");
       },
     );
   } else {
@@ -695,6 +718,7 @@ function actualizarFondo() {
     scene.background = new THREE.CanvasTexture(gCanvas);
     bgMesh.material.map = null;
     bgMesh.material.needsUpdate = true;
+    marcarRecursoInicialListo("fondo");
   }
 }
 
@@ -717,18 +741,48 @@ const logoMesh = new THREE.Mesh(
 // Posición en pantalla (coordenadas ortográficas -1 a 1)
 logoMesh.position.set(-0.65, 0.6, 0); // esquina inferior derecha
 
+function actualizarLogoPasaElBalon() {
+  const prefijo = canvasEsVertical()
+    ? "logoPasaVertical"
+    : "logoPasaHorizontal";
+  const ancho = settings[`${prefijo}Escala`];
+  const textura = logoMaterial.map;
+  const aspect =
+    textura?.image?.width && textura?.image?.height
+      ? textura.image.height / textura.image.width
+      : 1;
+
+  logoMesh.position.set(settings[`${prefijo}X`], settings[`${prefijo}Y`], 0);
+  logoMesh.scale.set(ancho * 2, ancho * 2 * aspect, 1);
+}
+
+actualizarLogoPasaElBalon();
+
 bgScene.add(logoMesh);
 
 // Cargar textura
-logoTextureLoader.load("./LogoPasaElBalon.png", (tex) => {
-  tex.colorSpace = THREE.SRGBColorSpace;
-  logoMaterial.map = tex;
-  logoMaterial.needsUpdate = true;
-});
+logoTextureLoader.load(
+  "./LogoPasaElBalon.png",
+  (tex) => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    logoMaterial.map = tex;
+    logoMaterial.needsUpdate = true;
+    actualizarLogoPasaElBalon();
+    marcarRecursoInicialListo("logoPasaElBalon");
+  },
+  undefined,
+  () => marcarRecursoInicialListo("logoPasaElBalon"),
+);
 
 // --- 5. LUCES, MODELO Y MATERIALES ---
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+controls.enablePan = false;
+controls.minDistance = 0.55;
+controls.maxDistance = 1.15;
+controls.minPolarAngle = Math.PI / 2;
+controls.maxPolarAngle = Math.PI / 2;
+controls.update();
 
 const ambientLight = new THREE.AmbientLight(
   settings.colorLuzAmbiente,
@@ -910,8 +964,44 @@ function descargarCaptura() {
 let mediaRecorder = null;
 let recordedChunks = [];
 let recordingTimeout = null;
+let formatoGrabacionActual = "horizontal";
 
-function prepararGrabacion() {
+const formatosGrabacion = {
+  vertical: {
+    width: 1080,
+    height: 1920,
+    nombre: "vertical",
+  },
+  horizontal: {
+    width: 1920,
+    height: 1080,
+    nombre: "horizontal",
+  },
+};
+
+function actualizarEstadoVideo(mensaje, activo) {
+  const loaderText = loaderElement?.querySelector("span");
+  if (loaderText && mensaje) loaderText.textContent = mensaje;
+  loaderElement?.classList.toggle("is-hidden", !activo);
+  if (htmlControls.capturar) htmlControls.capturar.disabled = activo;
+  if (htmlControls.story) htmlControls.story.disabled = activo;
+}
+
+function aplicarFormatoGrabacion(orientacion) {
+  const formato =
+    formatosGrabacion[orientacion] || formatosGrabacion.horizontal;
+  formatoGrabacionActual = formato.nombre;
+  tamanoCanvas = { width: formato.width, height: formato.height };
+  renderer.setPixelRatio(1);
+  camera.aspect = formato.width / formato.height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(formato.width, formato.height, false);
+  actualizarRenderTargets();
+  actualizarLogoPasaElBalon();
+  renderFrame();
+}
+
+function prepararGrabacion(orientacion = "horizontal") {
   if (!("MediaRecorder" in window) || !renderer.domElement.captureStream) {
     console.error("MediaRecorder no está disponible en este navegador.");
     return;
@@ -921,6 +1011,9 @@ function prepararGrabacion() {
     mediaRecorder.stop();
     return;
   }
+
+  aplicarFormatoGrabacion(orientacion);
+  actualizarEstadoVideo(`Grabando video ${orientacion}`, true);
 
   const stream = renderer.domElement.captureStream(30);
   recordedChunks = [];
@@ -934,7 +1027,19 @@ function prepararGrabacion() {
     if (event.data && event.data.size > 0) recordedChunks.push(event.data);
   };
 
+  mediaRecorder.onerror = (event) => {
+    console.error("No se pudo generar el video", event.error || event);
+    if (recordingTimeout) {
+      clearTimeout(recordingTimeout);
+      recordingTimeout = null;
+    }
+    redimensionarRenderer();
+    actualizarEstadoVideo("", false);
+  };
+
   mediaRecorder.onstop = () => {
+    actualizarEstadoVideo("Preparando descarga", true);
+
     if (recordingTimeout) {
       clearTimeout(recordingTimeout);
       recordingTimeout = null;
@@ -944,9 +1049,11 @@ function prepararGrabacion() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `story-${settings.nombre || "preview"}.webm`;
+    link.download = `story-${formatoGrabacionActual}-${settings.nombre || "preview"}.webm`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+    redimensionarRenderer();
+    actualizarEstadoVideo("", false);
   };
 
   mediaRecorder.start();
@@ -1022,35 +1129,54 @@ function renderFrame() {
 }
 
 const pmremGenerator = new THREE.PMREMGenerator(renderer);
-new HDRLoader().load("./hdri.hdr", (hdr) => {
-  hdr.mapping = THREE.EquirectangularReflectionMapping;
-  hdriEnvMap = pmremGenerator.fromEquirectangular(hdr).texture;
-  hdr.dispose();
-  scene.environment = settings.usarHDRI ? hdriEnvMap : null;
-  actualizarMateriales();
-});
+new HDRLoader().load(
+  "./hdri.hdr",
+  (hdr) => {
+    hdr.mapping = THREE.EquirectangularReflectionMapping;
+    hdriEnvMap = pmremGenerator.fromEquirectangular(hdr).texture;
+    hdr.dispose();
+    scene.environment = settings.usarHDRI ? hdriEnvMap : null;
+    actualizarMateriales();
+    marcarRecursoInicialListo("hdri");
+  },
+  undefined,
+  (error) => {
+    console.error("No se pudo cargar hdri.hdr", error);
+    marcarRecursoInicialListo("hdri");
+  },
+);
 
-new GLTFLoader().load("./TshirtPajaro.glb", (gltf) => {
-  modelo3D = gltf.scene;
-  const modelMeshes = [];
+new GLTFLoader().load(
+  "./TshirtPajaro2.glb",
+  (gltf) => {
+    modelo3D = gltf.scene;
+    const modelMeshes = [];
 
-  modelo3D.traverse((c) => {
-    if (c.isMesh && !c.userData?.isOutlineMesh) {
-      c.castShadow = c.receiveShadow = true;
-      c.material = new THREE.MeshStandardMaterial({ map: textTexture });
-      modelMeshes.push(c);
+    modelo3D.traverse((c) => {
+      if (c.isMesh && !c.userData?.isOutlineMesh) {
+        c.castShadow = c.receiveShadow = true;
+        c.material = new THREE.MeshStandardMaterial({ map: textTexture });
+        modelMeshes.push(c);
+      }
+    });
+
+    for (const mesh of modelMeshes) {
+      mesh.add(crearOutlineMesh(mesh));
     }
-  });
 
-  for (const mesh of modelMeshes) {
-    mesh.add(crearOutlineMesh(mesh));
-  }
-
-  scene.add(modelo3D);
-  modelo3D.position.set(0, -0.3, 0);
-  actualizarMateriales();
-  actualizarOutline();
-});
+    scene.add(modelo3D);
+    modelo3D.position.set(0, -0.3, 0);
+    modelo3D.rotation.x = inclinacionPlayeraCuello;
+    actualizarMateriales();
+    actualizarOutline();
+    marcarRecursoInicialListo("modelo");
+  },
+  undefined,
+  (error) => {
+    console.error("No se pudo cargar TshirtPajaro.glb", error);
+    marcarRecursoInicialListo("modelo");
+  },
+);
 
 // --- 6. GUI (TODOS LOS MENÚS RESTAURADOS) ---
 const gui = new GUI();
@@ -1251,6 +1377,32 @@ fEscena
   .add(settings, "usarImagenFondo")
   .name("Imagen FONDOPLAYERA")
   .onChange(actualizarFondo);
+const fLogoPasa = fEscena.addFolder("Logo PasaElBalon");
+fLogoPasa
+  .add(settings, "logoPasaHorizontalX", -1, 1, 0.01)
+  .name("Horizontal X")
+  .onChange(actualizarLogoPasaElBalon);
+fLogoPasa
+  .add(settings, "logoPasaHorizontalY", -1, 1, 0.01)
+  .name("Horizontal Y")
+  .onChange(actualizarLogoPasaElBalon);
+fLogoPasa
+  .add(settings, "logoPasaHorizontalEscala", 0.05, 1.4, 0.01)
+  .name("Horizontal Escala")
+  .onChange(actualizarLogoPasaElBalon);
+fLogoPasa
+  .add(settings, "logoPasaVerticalX", -1, 1, 0.01)
+  .name("Vertical X")
+  .onChange(actualizarLogoPasaElBalon);
+fLogoPasa
+  .add(settings, "logoPasaVerticalY", -1, 1, 0.01)
+  .name("Vertical Y")
+  .onChange(actualizarLogoPasaElBalon);
+fLogoPasa
+  .add(settings, "logoPasaVerticalEscala", 0.05, 1.4, 0.01)
+  .name("Vertical Escala")
+  .onChange(actualizarLogoPasaElBalon);
+fLogoPasa.close();
 fEscena
   .addColor(settings, "colorFondo")
   .name("Color de Fondo")
@@ -1271,6 +1423,7 @@ const htmlControls = {
   capturar: document.getElementById("control-capturar"),
   story: document.getElementById("control-story"),
   paletas: document.getElementById("control-paletas"),
+  panelToggle: document.getElementById("control-panel-toggle"),
   texturas: document.querySelectorAll('input[name="textura-base"]'),
   pivotes: document.querySelectorAll('input[name="modo-pivotes"]'),
 };
@@ -1345,8 +1498,18 @@ function bindHtmlControls() {
     });
   });
 
-  htmlControls.capturar?.addEventListener("click", () => descargarCaptura());
-  htmlControls.story?.addEventListener("click", () => prepararGrabacion());
+  htmlControls.capturar?.addEventListener("click", () =>
+    prepararGrabacion("vertical"),
+  );
+  htmlControls.story?.addEventListener("click", () =>
+    prepararGrabacion("horizontal"),
+  );
+  htmlControls.panelToggle?.addEventListener("click", () => {
+    const abierto = document.body.classList.toggle("panel-open");
+    htmlControls.panelToggle.setAttribute("aria-expanded", String(abierto));
+    htmlControls.panelToggle.textContent = abierto ? "Cerrar" : "Ajustes";
+    requestAnimationFrame(redimensionarRenderer);
+  });
 }
 
 function syncHtmlPaleta() {
@@ -1363,12 +1526,43 @@ function animate() {
   renderFrame();
 }
 
-window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
+function redimensionarRenderer() {
+  tamanoCanvas = obtenerTamanoCanvas();
+  renderer.setPixelRatio(window.devicePixelRatio);
+  camera.aspect = tamanoCanvas.width / tamanoCanvas.height;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(tamanoCanvas.width, tamanoCanvas.height, false);
   actualizarRenderTargets();
-});
+  actualizarLogoPasaElBalon();
+}
+
+let resizeFrame = null;
+let resizeTimer = null;
+
+function programarRedimension() {
+  if (resizeFrame) cancelAnimationFrame(resizeFrame);
+  if (resizeTimer) clearTimeout(resizeTimer);
+
+  resizeFrame = requestAnimationFrame(() => {
+    resizeFrame = null;
+    redimensionarRenderer();
+  });
+
+  resizeTimer = setTimeout(() => {
+    resizeTimer = null;
+    redimensionarRenderer();
+  }, 250);
+}
+
+window.addEventListener("resize", programarRedimension);
+window.addEventListener("orientationchange", programarRedimension);
+window.visualViewport?.addEventListener("resize", programarRedimension);
+window.visualViewport?.addEventListener("scroll", programarRedimension);
+
+if ("ResizeObserver" in window) {
+  const appResizeObserver = new ResizeObserver(programarRedimension);
+  appResizeObserver.observe(appContainer);
+}
 
 window.addEventListener("keydown", (event) => {
   if (event.key.toLowerCase() === "#") {
