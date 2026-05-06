@@ -247,15 +247,15 @@ const settings = {
   logoPasaHorizontalX: -0.65,
   logoPasaHorizontalY: 0.6,
   logoPasaHorizontalEscala: 0.5,
-  logoPasaVerticalX: -0.5,
-  logoPasaVerticalY: 0.76,
-  logoPasaVerticalEscala: 0.38,
+  logoPasaVerticalX: 0,
+  logoPasaVerticalY: 0.8,
+  logoPasaVerticalEscala: 0.7,
   // HDRI y Material
   usarHDRI: true,
   intensidadHDRI: 0.35,
   exposure: 0.25,
-  roughness: 0.9,
-  metalness: 0.9,
+  roughness: 0.8,
+  metalness: 0.4,
   outlineActivo: false,
   outlineColor: "#ffffff",
   outlineGrosor: 0.005,
@@ -733,10 +733,7 @@ const logoMaterial = new THREE.MeshBasicMaterial({
   toneMapped: false,
 });
 
-const logoMesh = new THREE.Mesh(
-  new THREE.PlaneGeometry(0.5, 0.5), // tamaño relativo a pantalla
-  logoMaterial,
-);
+const logoMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), logoMaterial);
 
 // Posición en pantalla (coordenadas ortográficas -1 a 1)
 logoMesh.position.set(-0.65, 0.6, 0); // esquina inferior derecha
@@ -747,13 +744,14 @@ function actualizarLogoPasaElBalon() {
     : "logoPasaHorizontal";
   const ancho = settings[`${prefijo}Escala`];
   const textura = logoMaterial.map;
-  const aspect =
+  const aspectImagen =
     textura?.image?.width && textura?.image?.height
       ? textura.image.height / textura.image.width
       : 1;
+  const aspectCanvas = tamanoCanvas.width / tamanoCanvas.height;
 
   logoMesh.position.set(settings[`${prefijo}X`], settings[`${prefijo}Y`], 0);
-  logoMesh.scale.set(ancho * 2, ancho * 2 * aspect, 1);
+  logoMesh.scale.set(ancho, ancho * aspectImagen * aspectCanvas, 1);
 }
 
 actualizarLogoPasaElBalon();
@@ -965,6 +963,7 @@ let mediaRecorder = null;
 let recordedChunks = [];
 let recordingTimeout = null;
 let formatoGrabacionActual = "horizontal";
+let videoGenerado = null;
 
 const formatosGrabacion = {
   vertical: {
@@ -983,8 +982,77 @@ function actualizarEstadoVideo(mensaje, activo) {
   const loaderText = loaderElement?.querySelector("span");
   if (loaderText && mensaje) loaderText.textContent = mensaje;
   loaderElement?.classList.toggle("is-hidden", !activo);
+  if (htmlControls.loaderActions) htmlControls.loaderActions.hidden = true;
   if (htmlControls.capturar) htmlControls.capturar.disabled = activo;
   if (htmlControls.story) htmlControls.story.disabled = activo;
+}
+
+function obtenerTipoVideoPreferido() {
+  const tipos = [
+    "video/mp4;codecs=avc1.42E01E",
+    "video/mp4",
+    "video/webm;codecs=vp9",
+    "video/webm",
+  ];
+
+  return tipos.find((tipo) => MediaRecorder.isTypeSupported(tipo)) || "";
+}
+
+function obtenerExtensionVideo(tipo) {
+  return tipo.includes("mp4") ? "mp4" : "webm";
+}
+
+function obtenerTipoArchivoVideo(tipo) {
+  return tipo.includes("mp4") ? "video/mp4" : "video/webm";
+}
+
+function crearNombreVideo() {
+  const extension = obtenerExtensionVideo(videoGenerado?.type || "video/webm");
+  return `story-${formatoGrabacionActual}-${settings.nombre || "preview"}.${extension}`;
+}
+
+function descargarBlobVideo() {
+  if (!videoGenerado) return;
+  const url = URL.createObjectURL(videoGenerado);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = crearNombreVideo();
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function compartirVideoGenerado() {
+  if (!videoGenerado) return;
+
+  const file = new File([videoGenerado], crearNombreVideo(), {
+    type: obtenerTipoArchivoVideo(videoGenerado.type || "video/webm"),
+  });
+  const shareData = {
+    files: [file],
+    title: "Historia Pasa El Balon",
+  };
+
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share(shareData);
+      loaderElement?.classList.add("is-hidden");
+      return;
+    } catch (error) {
+      if (error?.name === "AbortError") return;
+      console.error("No se pudo compartir el video", error);
+    }
+  }
+
+  descargarBlobVideo();
+}
+
+function mostrarVideoListo() {
+  const loaderText = loaderElement?.querySelector("span");
+  if (loaderText) loaderText.textContent = "Video listo";
+  loaderElement?.classList.remove("is-hidden");
+  if (htmlControls.loaderActions) htmlControls.loaderActions.hidden = false;
+  if (htmlControls.capturar) htmlControls.capturar.disabled = false;
+  if (htmlControls.story) htmlControls.story.disabled = false;
 }
 
 function aplicarFormatoGrabacion(orientacion) {
@@ -1017,11 +1085,13 @@ function prepararGrabacion(orientacion = "horizontal") {
 
   const stream = renderer.domElement.captureStream(30);
   recordedChunks = [];
-  const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
-    ? "video/webm;codecs=vp9"
-    : "video/webm";
+  videoGenerado = null;
+  const mimeType = obtenerTipoVideoPreferido();
 
-  mediaRecorder = new MediaRecorder(stream, { mimeType });
+  mediaRecorder = new MediaRecorder(
+    stream,
+    mimeType ? { mimeType } : undefined,
+  );
 
   mediaRecorder.ondataavailable = (event) => {
     if (event.data && event.data.size > 0) recordedChunks.push(event.data);
@@ -1045,15 +1115,10 @@ function prepararGrabacion(orientacion = "horizontal") {
       recordingTimeout = null;
     }
 
-    const blob = new Blob(recordedChunks, { type: "video/webm" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `story-${formatoGrabacionActual}-${settings.nombre || "preview"}.webm`;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const blobType = mediaRecorder.mimeType || mimeType || "video/webm";
+    videoGenerado = new Blob(recordedChunks, { type: blobType });
     redimensionarRenderer();
-    actualizarEstadoVideo("", false);
+    mostrarVideoListo();
   };
 
   mediaRecorder.start();
@@ -1147,7 +1212,7 @@ new HDRLoader().load(
 );
 
 new GLTFLoader().load(
-  "./TshirtPajaro2.glb",
+  "./TshirtPajaro_.glb",
   (gltf) => {
     modelo3D = gltf.scene;
     const modelMeshes = [];
@@ -1424,6 +1489,10 @@ const htmlControls = {
   story: document.getElementById("control-story"),
   paletas: document.getElementById("control-paletas"),
   panelToggle: document.getElementById("control-panel-toggle"),
+  loaderActions: document.querySelector(".loader-actions"),
+  compartirVideo: document.getElementById("video-share"),
+  descargarVideo: document.getElementById("video-download"),
+  cerrarVideo: document.getElementById("video-close"),
   texturas: document.querySelectorAll('input[name="textura-base"]'),
   pivotes: document.querySelectorAll('input[name="modo-pivotes"]'),
 };
@@ -1504,6 +1573,15 @@ function bindHtmlControls() {
   htmlControls.story?.addEventListener("click", () =>
     prepararGrabacion("horizontal"),
   );
+  htmlControls.compartirVideo?.addEventListener("click", () =>
+    compartirVideoGenerado(),
+  );
+  htmlControls.descargarVideo?.addEventListener("click", () =>
+    descargarBlobVideo(),
+  );
+  htmlControls.cerrarVideo?.addEventListener("click", () => {
+    loaderElement?.classList.add("is-hidden");
+  });
   htmlControls.panelToggle?.addEventListener("click", () => {
     const abierto = document.body.classList.toggle("panel-open");
     htmlControls.panelToggle.setAttribute("aria-expanded", String(abierto));

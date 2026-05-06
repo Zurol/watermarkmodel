@@ -100,6 +100,35 @@ body {
   animation: loader-spin 0.9s linear infinite;
 }
 
+.loader-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.loader-actions[hidden] {
+  display: none;
+}
+
+.loader-actions button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: #f5f7fb;
+  color: #0a0a0c;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.loader-actions button:first-child {
+  background: #ffd040;
+}
+
 @keyframes loader-spin {
   to {
     transform: rotate(360deg);
