@@ -277,6 +277,7 @@ const settings = {
   // Acciones
   grabarVideo: () => prepararGrabacion("horizontal"),
   descargarImagen: () => descargarCaptura(),
+  descargarSoloTextura: () => descargarTexturaGenerada(),
 };
 
 // --- 3. CANVAS DE TEXTURA Y PREVISUALIZACIÓN ---
@@ -364,6 +365,23 @@ function cargarImagen(path) {
   return img;
 }
 
+function cargarImagenAsync(path) {
+  return new Promise((resolve, reject) => {
+    if (imageCache[path] && imageCache[path].complete) {
+      resolve(imageCache[path]);
+      return;
+    }
+    const img = new Image();
+    img.crossOrigin = "anonymous"; // Evita problemas de permisos al descargar
+    img.onload = () => {
+      imageCache[path] = img;
+      resolve(img);
+    };
+    img.onerror = reject;
+    img.src = path;
+  });
+}
+
 function aplicarPaleta(idPaleta) {
   const paleta =
     paletasDisponibles.find((item) => item.id === idPaleta) ||
@@ -374,139 +392,168 @@ function aplicarPaleta(idPaleta) {
   settings.colorBloqueC = paleta.terciario;
   settings.colorTexto = paleta.terciario;
 }
-
+/*
+// Busca tu función actualizarTextura y envuélvela en una promesa así:
 function actualizarTextura() {
+  return new Promise((resolve, reject) => {
+    // <-- Añadimos esto
+    textureVersion++;
+    const currentVersion = textureVersion;
+
+    ctx.clearRect(0, 0, 2048, 2048);
+
+    // 1. Color Base
+    ctx.fillStyle = settings.colorBloqueA;
+    ctx.fillRect(0, 0, 2048, 2048);
+
+    // 2. Bloques
+    if (settings.mostrarBloques) {
+      ctx.fillStyle = settings.colorBloqueB;
+      ctx.fillRect(0, 0, 2048, 260);
+      ctx.fillRect(0, 1625, 2048, 423);
+    }
+
+    cargarSVGColoreado(settings.texturaBase, settings.colorBloqueC)
+      .then((imgBase) => {
+        if (currentVersion !== textureVersion) return;
+
+        ctx.drawImage(imgBase, 0, 0, 2048, 2048);
+
+        // ... (Aquí va todo tu código actual de LOGOS y TEXTOS) ...
+        // ... (Asegúrate de que todo el código de dibujo esté dentro de este .then) ...
+
+        textTexture.needsUpdate = true;
+        marcarRecursoInicialListo("textura");
+
+        resolve(); // <-- IMPORTANTE: Esto le dice al sistema que ya terminó de dibujar todo
+      })
+      .catch((err) => {
+        console.error(err);
+        reject(err);
+      });
+  });
+}
+*/
+async function actualizarTextura() {
   textureVersion++;
   const currentVersion = textureVersion;
 
+  // 1. LIMPIEZA Y FONDO BASE
   ctx.clearRect(0, 0, 2048, 2048);
-
-  // 1. Color Base
   ctx.fillStyle = settings.colorBloqueA;
   ctx.fillRect(0, 0, 2048, 2048);
 
-  // 2. Bloques
+  // 2. DIBUJAR BLOQUES
   if (settings.mostrarBloques) {
     ctx.fillStyle = settings.colorBloqueB;
     ctx.fillRect(0, 0, 2048, 260);
     ctx.fillRect(0, 1625, 2048, 423);
   }
 
-  // 3. SVG + TODO LO DEMÁS dentro del mismo flujo
-  cargarSVGColoreado(settings.texturaBase, settings.colorBloqueC)
-    .then((imgBase) => {
-      if (currentVersion !== textureVersion) return;
+  try {
+    // 3. CARGAR Y DIBUJAR SVG PATTERN
+    const imgBase = await cargarSVGColoreado(
+      settings.texturaBase,
+      settings.colorBloqueC,
+    );
+    if (currentVersion !== textureVersion) return;
+    ctx.drawImage(imgBase, 0, 0, 2048, 2048);
 
-      // SVG
-      ctx.drawImage(imgBase, 0, 0, 2048, 2048);
+    // 4. CARGAR Y DIBUJAR LOGOS
+    if (settings.mostrarLogos) {
+      const logoActivo = obtenerLogoActivo();
+      if (logoActivo >= 1) {
+        const imgL = await cargarImagenAsync(`./Logo${logoActivo}.png`);
+        const esc = settings[`logo${logoActivo}_esc`];
+        const w = imgL.width * esc;
+        const h = imgL.height * esc;
+        const x = settings[`logo${logoActivo}_x`];
+        const y = settings[`logo${logoActivo}_y`];
+        const rot = (settings[`logo${logoActivo}_rot`] * Math.PI) / 180;
 
-      // 4. LOGOS
-      if (settings.mostrarLogos) {
-        const logoActivo = obtenerLogoActivo();
-        if (logoActivo >= 1) {
-          const imgL = cargarImagen(`./Logo${logoActivo}.png`);
-          if (imgL.complete) {
-            const esc = settings[`logo${logoActivo}_esc`];
-            const w = imgL.width * esc;
-            const h = imgL.height * esc;
-            const x = settings[`logo${logoActivo}_x`];
-            const y = settings[`logo${logoActivo}_y`];
-            const rot = (settings[`logo${logoActivo}_rot`] * Math.PI) / 180;
-
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(rot);
-            ctx.drawImage(imgL, -w / 2, -h / 2, w, h);
-            ctx.restore();
-          }
-        }
-      }
-
-      // 5. TEXTO
-      const gruposPivote = {
-        espalda: ["Espalda"],
-        espalda_manga: ["Espalda", "Manga Der"],
-        espalda_frente: ["Espalda", "Pecho"],
-        espalda_frente_manga: ["Espalda", "Pecho", "Manga Der"],
-      };
-
-      const pivotesActivos = gruposPivote[settings.modoPivotes] || ["Espalda"];
-
-      const peso = settings.negrita ? "700" : "500";
-
-      const dibujarNombreNumero = (x, y, escala, incluirNombre) => {
         ctx.save();
         ctx.translate(x, y);
-        ctx.scale(escala, escala);
-
-        ctx.fillStyle = settings.colorBloqueC;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-
-        if (incluirNombre) {
-          const nombre = settings.nombre.toUpperCase();
-          const anchoMaximoNombre =
-            anchoMaximoNombreEspalda / Math.max(escala, 0.001);
-          ctx.font = `${peso} ${settings.tamanioNombre}px "${settings.fuente}"`;
-          const anchoNombre = ctx.measureText(nombre).width;
-          const escalaNombre =
-            anchoNombre > anchoMaximoNombre
-              ? anchoMaximoNombre / anchoNombre
-              : 1;
-          const tamanioNombre = settings.tamanioNombre * escalaNombre;
-
-          ctx.font = `${peso} ${tamanioNombre}px "${settings.fuente}"`;
-          ctx.fillText(nombre, 0, 0);
-
-          ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
-          ctx.fillText(limitarNumero(settings.numero), 0, settings.espaciado);
-        } else {
-          ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
-          ctx.fillText(limitarNumero(settings.numero), 0, 0);
-        }
-
+        ctx.rotate(rot);
+        ctx.drawImage(imgL, -w / 2, -h / 2, w, h);
         ctx.restore();
-      };
-
-      for (const nombrePivote of pivotesActivos) {
-        if (nombrePivote === "Espalda") {
-          dibujarNombreNumero(
-            settings.posX,
-            settings.posY,
-            settings.escalaX,
-            true,
-          );
-          continue;
-        }
-
-        if (nombrePivote === "Pecho") {
-          dibujarNombreNumero(
-            settings.pechoX,
-            settings.pechoY,
-            settings.pechoEscala,
-            false,
-          );
-          continue;
-        }
-
-        if (nombrePivote === "Manga Der") {
-          dibujarNombreNumero(
-            settings.mangaDerX,
-            settings.mangaDerY,
-            settings.mangaDerEscala,
-            false,
-          );
-        }
       }
+    }
 
-      textTexture.needsUpdate = true;
-      marcarRecursoInicialListo("textura");
-    })
-    .catch((error) => {
-      console.error("No se pudo cargar la textura base", error);
-      textTexture.needsUpdate = true;
-      marcarRecursoInicialListo("textura");
-    });
+    // 5. DIBUJAR TEXTOS (NOMBRE Y NÚMERO)
+    const gruposPivote = {
+      espalda: ["Espalda"],
+      espalda_manga: ["Espalda", "Manga Der"],
+      espalda_frente: ["Espalda", "Pecho"],
+      espalda_frente_manga: ["Espalda", "Pecho", "Manga Der"],
+    };
+
+    const pivotesActivos = gruposPivote[settings.modoPivotes] || ["Espalda"];
+    const peso = settings.negrita ? "700" : "500";
+
+    // Definición interna de la función de dibujo de texto
+    const ejecutarDibujoTexto = (x, y, escala, incluirNombre) => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(escala, escala);
+      ctx.fillStyle = settings.colorBloqueC;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      if (incluirNombre) {
+        const nombre = settings.nombre.toUpperCase();
+        const anchoMaximoNombre =
+          anchoMaximoNombreEspalda / Math.max(escala, 0.001);
+        ctx.font = `${peso} ${settings.tamanioNombre}px "${settings.fuente}"`;
+        const anchoNombre = ctx.measureText(nombre).width;
+        const escalaNombre =
+          anchoNombre > anchoMaximoNombre ? anchoMaximoNombre / anchoNombre : 1;
+        const tamanioFinal = settings.tamanioNombre * escalaNombre;
+
+        ctx.font = `${peso} ${tamanioFinal}px "${settings.fuente}"`;
+        ctx.fillText(nombre, 0, 0);
+        ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
+        ctx.fillText(limitarNumero(settings.numero), 0, settings.espaciado);
+      } else {
+        ctx.font = `${peso} ${settings.tamanioNumero}px "${settings.fuente}"`;
+        ctx.fillText(limitarNumero(settings.numero), 0, 0);
+      }
+      ctx.restore();
+    };
+
+    // Aplicar el dibujo en cada pivote activo
+    for (const nombrePivote of pivotesActivos) {
+      if (nombrePivote === "Espalda") {
+        ejecutarDibujoTexto(
+          settings.posX,
+          settings.posY,
+          settings.escalaX,
+          true,
+        );
+      } else if (nombrePivote === "Pecho") {
+        ejecutarDibujoTexto(
+          settings.pechoX,
+          settings.pechoY,
+          settings.pechoEscala,
+          false,
+        );
+      } else if (nombrePivote === "Manga Der") {
+        ejecutarDibujoTexto(
+          settings.mangaDerX,
+          settings.mangaDerY,
+          settings.mangaDerEscala,
+          false,
+        );
+      }
+    }
+
+    // 6. ACTUALIZAR THREE.JS Y FINALIZAR
+    textTexture.needsUpdate = true;
+    marcarRecursoInicialListo("textura");
+    return true;
+  } catch (error) {
+    console.error("Error en la textura:", error);
+    marcarRecursoInicialListo("textura");
+  }
 }
 
 // --- 4. ESCENA 3D Y RENDERER ---
@@ -959,6 +1006,25 @@ function descargarCaptura() {
   }, "image/png");
 }
 
+function descargarTexturaGenerada() {
+  // Asegurarnos de que el canvas esté actualizado antes de descargar
+  actualizarTextura();
+
+  // Convertir el canvas de la textura a un Blob
+  textCanvas.toBlob((blob) => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    // Nombre del archivo basado en el jugador
+    link.download = `textura-jersey-${settings.nombre || "personalizada"}.png`;
+    link.click();
+
+    // Limpiar memoria
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, "image/png");
+}
+
 let mediaRecorder = null;
 let recordedChunks = [];
 let recordingTimeout = null;
@@ -1244,6 +1310,25 @@ new GLTFLoader().load(
 );
 
 // --- 6. GUI (TODOS LOS MENÚS RESTAURADOS) ---
+
+settings.descargarSoloTextura = async function () {
+  try {
+    // Forzamos el redibujado completo y esperamos a que termine (SVG + Logo + Texto)
+    await actualizarTextura();
+
+    // Creamos el enlace de descarga
+    const link = document.createElement("a");
+    link.download = `textura-${settings.nombre || "jersey"}.png`;
+
+    // Usamos toDataURL para obtener la imagen del canvas de la textura
+    link.href = textCanvas.toDataURL("image/png");
+
+    link.click();
+  } catch (error) {
+    console.error("Error al descargar la textura:", error);
+  }
+};
+
 const gui = new GUI();
 gui.hide();
 
@@ -1480,6 +1565,7 @@ fEscena
 // Botones de Acción
 gui.add(settings, "descargarImagen").name("📸 Capturar PNG");
 gui.add(settings, "grabarVideo").name("🎬 Grabar Story");
+gui.add(settings, "descargarSoloTextura").name("📥 Descargar Textura (Plana)");
 
 const htmlControls = {
   nombre: document.getElementById("control-nombre"),
