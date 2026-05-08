@@ -256,7 +256,7 @@ const settings = {
   logoPasaHorizontalEscala: 0.5,
   logoPasaVerticalX: 0,
   logoPasaVerticalY: 0.8,
-  logoPasaVerticalEscala: 0.7,
+  logoPasaVerticalEscala: 2,
   // HDRI y Material
   usarHDRI: true,
   intensidadHDRI: 0.35,
@@ -294,10 +294,12 @@ const settings = {
   videoLogoY: 0.65,
   videoLogoEscalaInicio: 0.25,
   videoLogoEscalaFinal: 0.6,
+  videoLogoEscalaFinalVertical: 2,
   videoHashtag: " #PASAELBALÓN ",
   videoHashtagX: 0,
   videoHashtagY: -0.7,
   videoHashtagEscala: 0.5,
+  videoHashtagEscalaVertical: 1,
   videoDesactivarHDRI: false,
   videoReflectoresActivos: false,
   videoReflectoresInicioMs: 200,
@@ -425,48 +427,7 @@ function aplicarPaleta(idPaleta) {
   settings.colorBloqueC = paleta.terciario;
   settings.colorTexto = paleta.terciario;
 }
-/*
-// Busca tu función actualizarTextura y envuélvela en una promesa así:
-function actualizarTextura() {
-  return new Promise((resolve, reject) => {
-    // <-- Añadimos esto
-    textureVersion++;
-    const currentVersion = textureVersion;
 
-    ctx.clearRect(0, 0, 2048, 2048);
-
-    // 1. Color Base
-    ctx.fillStyle = settings.colorBloqueA;
-    ctx.fillRect(0, 0, 2048, 2048);
-
-    // 2. Bloques
-    if (settings.mostrarBloques) {
-      ctx.fillStyle = settings.colorBloqueB;
-      ctx.fillRect(0, 0, 2048, 260);
-      ctx.fillRect(0, 1625, 2048, 423);
-    }
-
-    cargarSVGColoreado(settings.texturaBase, settings.colorBloqueC)
-      .then((imgBase) => {
-        if (currentVersion !== textureVersion) return;
-
-        ctx.drawImage(imgBase, 0, 0, 2048, 2048);
-
-        // ... (Aquí va todo tu código actual de LOGOS y TEXTOS) ...
-        // ... (Asegúrate de que todo el código de dibujo esté dentro de este .then) ...
-
-        textTexture.needsUpdate = true;
-        marcarRecursoInicialListo("textura");
-
-        resolve(); // <-- IMPORTANTE: Esto le dice al sistema que ya terminó de dibujar todo
-      })
-      .catch((err) => {
-        console.error(err);
-        reject(err);
-      });
-  });
-}
-*/
 async function actualizarTextura() {
   textureVersion++;
   const currentVersion = textureVersion;
@@ -859,25 +820,48 @@ const logoMaterial = new THREE.MeshBasicMaterial({
   toneMapped: false,
 });
 
-const logoMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), logoMaterial);
+let logoMesh;
+//const logoMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), logoMaterial);
+logoMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), logoMaterial);
 
 // Posición en pantalla (coordenadas ortográficas -1 a 1)
 logoMesh.position.set(-0.65, 0.6, 0); // esquina inferior derecha
 
 function actualizarLogoPasaElBalon() {
-  const prefijo = canvasEsVertical()
-    ? "logoPasaVertical"
-    : "logoPasaHorizontal";
-  const ancho = settings[`${prefijo}Escala`];
   const textura = logoMaterial.map;
-  const aspectImagen =
-    textura?.image?.width && textura?.image?.height
-      ? textura.image.height / textura.image.width
-      : 1;
-  const aspectCanvas = tamanoCanvas.width / tamanoCanvas.height;
+  if (!textura || !textura.image) return;
 
-  logoMesh.position.set(settings[`${prefijo}X`], settings[`${prefijo}Y`], 0);
-  logoMesh.scale.set(ancho, ancho * aspectImagen * aspectCanvas, 1);
+  const esVertical = camera.aspect < 1;
+  const prefijo = esVertical ? "logoPasaVertical" : "logoPasaHorizontal";
+
+  // Tomamos tu valor de la GUI
+  const anchoOriginal = esVertical
+    ? settings.videoLogoEscalaFinalVertical
+    : settings.logoPasaHorizontalEscala;
+
+  const aspectImagen = textura.image.height / textura.image.width;
+  logoMesh.position.set(settings[`${prefijo}X`], settings[`${prefijo}Y`], 0.05);
+
+  if (esVertical) {
+    logoMesh.visible = false; // El logo debería DESAPARECER por completo
+    console.log("HE OCULTADO EL LOGO");
+    // --- PRUEBA DE DIAGNÓSTICO ---
+    const escalaGigante = anchoOriginal * 5;
+    logoMesh.scale.set(escalaGigante, escalaGigante * aspectImagen, 1);
+
+    console.log(
+      `%c [PRUEBA] Escala Original: ${anchoOriginal} | Aplicando x5: ${escalaGigante}`,
+      "background: red; color: white; padding: 5px;",
+    );
+  } else {
+    // Modo normal para horizontal
+    const aspectCanvas = tamanoCanvas.width / tamanoCanvas.height;
+    logoMesh.scale.set(
+      anchoOriginal,
+      anchoOriginal * aspectImagen * aspectCanvas,
+      1,
+    );
+  }
 }
 
 actualizarLogoPasaElBalon();
@@ -926,7 +910,7 @@ const hashtagMaterial = new THREE.MeshBasicMaterial({
   toneMapped: false,
 });
 const hashtagMesh = new THREE.Mesh(
-  new THREE.PlaneGeometry(1, 1),
+  new THREE.PlaneGeometry(1, 1.4),
   hashtagMaterial,
 );
 hashtagMesh.visible = false;
@@ -938,15 +922,23 @@ function actualizarHashtagVideo() {
 
   const aspectImagen = textura.image.width / textura.image.height;
 
+  // 1. Determinamos si estamos en modo vertical u horizontal
+  // Si el aspect es menor a 1, significa que el alto es mayor que el ancho (Vertical)
+  const esVertical = camera.aspect < 1;
+
+  // 2. Seleccionamos la escala basada en la orientación
+  const escalaBase = esVertical
+    ? settings.videoHashtagEscalaVertical
+    : settings.videoHashtagEscala;
+
   hashtagMesh.position.set(settings.videoHashtagX, settings.videoHashtagY, 0);
 
-  // Dividimos entre 10 (o el factor que prefieras) para que
-  // en el GUI puedas usar valores como 1, 2 o 3 en lugar de 0.1
   const factorAjuste = 0.1;
 
+  // 3. Aplicamos la escala seleccionada
   hashtagMesh.scale.set(
-    settings.videoHashtagEscala * aspectImagen * factorAjuste,
-    settings.videoHashtagEscala * factorAjuste,
+    escalaBase * aspectImagen * factorAjuste,
+    escalaBase * factorAjuste,
     1,
   );
 }
