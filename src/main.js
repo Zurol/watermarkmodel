@@ -677,7 +677,6 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000,
 );
-camera.position.set(0, 0, -0.85);
 camera.position.set(0, 0.4, 2.5);
 
 const renderer = new THREE.WebGLRenderer({
@@ -2255,7 +2254,7 @@ function redimensionarRenderer() {
   camera.aspect = rect.width / rect.height;
 
   // Esto garantiza que la "lupa" de la cámara no cambie
-  camera.fov = 45;
+  camera.fov = 55;
 
   camera.updateProjectionMatrix();
   renderer.setSize(rect.width, rect.height, false);
@@ -2272,10 +2271,10 @@ function prepararCamaraParaVideo() {
   camera.position.set(0, 0, 2.5);
 
   // 2. Forzamos el objetivo al centro del modelo
-  controls.target.set(0, -0.3, 0);
+  controls.target.set(0, 0.1, 0);
 
   // 3. Forzamos el FOV fijo para que la escala sea siempre la misma
-  camera.fov = 45;
+  camera.fov = 70;
 
   // 4. Actualizamos todo para que Three.js se entere del cambio
   camera.updateProjectionMatrix();
