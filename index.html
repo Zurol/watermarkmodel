@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <title>Personalizador 3D</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script type="module" crossorigin src="/watermarkmodel/assets/index-DYj5aKis.js"></script>
-    <link rel="stylesheet" crossorigin href="/watermarkmodel/assets/index-CGonDh-Z.css">
+    <script type="module" crossorigin src="/watermarkmodel/assets/index-BZTAuzMv.js"></script>
+    <link rel="stylesheet" crossorigin href="/watermarkmodel/assets/index-tw12Ooe9.css">
   </head>
 
   <body>
@@ -30,6 +30,23 @@
         <span>Número</span>
         <input type="number" id="control-numero" maxlength="2" value="10" />
       </label>
+
+      <fieldset class="field">
+        <legend>Modelo</legend>
+        <label
+          ><input
+            type="radio"
+            name="modelo-torso"
+            value="./ModeloFem.glb"
+            checked
+          />
+          Torso A</label
+        >
+        <label
+          ><input type="radio" name="modelo-torso" value="./ModeloMasc.glb" />
+          Torso B</label
+        >
+      </fieldset>
 
       <fieldset class="field">
         <legend>Patrones Base</legend>
@@ -103,8 +120,15 @@
         </button>
       </div>
     </aside>
-    <div id="canvas-loader" class="canvas-loader" role="status" aria-live="polite">
-      <div class="loader-mark"></div>
+    <div
+      id="canvas-loader"
+      class="canvas-loader"
+      role="status"
+      aria-live="polite"
+      aria-label="Cargando"
+    >
+      <div id="loader-lottie" class="loader-lottie" aria-hidden="true"></div>
+      <div class="loader-mark" aria-hidden="true"></div>
       <span>Cargando</span>
       <div class="loader-actions" hidden>
         <button id="video-share" type="button">Compartir</button>
@@ -112,6 +136,6 @@
         <button id="video-close" type="button">Cerrar</button>
       </div>
     </div>
-    <div id="app"></div>
+    <div id="app"></div>
   </body>
 </html>
