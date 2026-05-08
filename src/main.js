@@ -24,8 +24,8 @@ const texturasDisponibles = [
 ];
 
 const modelosTorsoDisponibles = {
-  "Torso A": "./ModeloFem.glb",
-  "Torso B": "./ModeloMasc.glb",
+  "Torso A": "./ModeloMasc.glb",
+  "Torso B": "./ModeloFem.glb",
 };
 
 const obtenerLogoActivo = () =>
@@ -51,13 +51,6 @@ const paletasDisponibles = [
     nombre: "Pink Breeze",
     principal: "#e8528b",
     secundario: "#92d3e9",
-    terciario: "#ffffff",
-  },
-  {
-    id: "sky-breeze",
-    nombre: "Sky Breeze",
-    principal: "#92d3e9",
-    secundario: "#e8528b",
     terciario: "#ffffff",
   },
   {
@@ -96,25 +89,11 @@ const paletasDisponibles = [
     terciario: "#f9dc62",
   },
   {
-    id: "lime-light",
-    nombre: "Lime Light",
-    principal: "#bdd24c",
-    secundario: "#ffffff",
-    terciario: "#ffffff",
-  },
-  {
     id: "crimson-night",
     nombre: "Crimson Night",
     principal: "#f32a4f",
     secundario: "#343390",
     terciario: "#f9dc62",
-  },
-  {
-    id: "gold-accent",
-    nombre: "Gold Accent",
-    principal: "#ffdd57",
-    secundario: "#d12e4f",
-    terciario: "#ffffff",
   },
   {
     id: "ocean-light",
@@ -135,20 +114,6 @@ const paletasDisponibles = [
     nombre: "Sunfire Kit",
     principal: "#f49846",
     secundario: "#f32a4f",
-    terciario: "#ffffff",
-  },
-  {
-    id: "skyline-united",
-    nombre: "Skyline United",
-    principal: "#92d3e9",
-    secundario: "#006bb7",
-    terciario: "#ffffff",
-  },
-  {
-    id: "lime-strike",
-    nombre: "Lime Strike",
-    principal: "#bdd24c",
-    secundario: "#33ab58",
     terciario: "#ffffff",
   },
   {
@@ -416,6 +381,8 @@ function cargarImagenAsync(path) {
     img.src = path;
   });
 }
+
+
 
 function aplicarPaleta(idPaleta) {
   const paleta =
