@@ -821,46 +821,42 @@ const logoMaterial = new THREE.MeshBasicMaterial({
 });
 
 let logoMesh;
-//const logoMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), logoMaterial);
+// Limpiar logo anterior si existe
+const oldLogo = scene.getObjectByName("logoUnico");
+if (oldLogo) scene.remove(oldLogo);
+
 logoMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), logoMaterial);
+logoMesh.name = "logoUnico";
+scene.add(logoMesh);
 
 // Posición en pantalla (coordenadas ortográficas -1 a 1)
 logoMesh.position.set(-0.65, 0.6, 0); // esquina inferior derecha
 
 function actualizarLogoPasaElBalon() {
-  const textura = logoMaterial.map;
-  if (!textura || !textura.image) return;
+  if (!logoMesh || !logoMaterial.map || !logoMaterial.map.image) return;
 
   const esVertical = camera.aspect < 1;
   const prefijo = esVertical ? "logoPasaVertical" : "logoPasaHorizontal";
 
-  // Tomamos tu valor de la GUI
-  const anchoOriginal = esVertical
+  // 1. Corregimos para que lea el slider correcto según el modo
+  const ancho = esVertical
     ? settings.videoLogoEscalaFinalVertical
     : settings.logoPasaHorizontalEscala;
 
+  const textura = logoMaterial.map;
   const aspectImagen = textura.image.height / textura.image.width;
+
+  // 2. Posicionamos (esto ya lo tenías bien)
   logoMesh.position.set(settings[`${prefijo}X`], settings[`${prefijo}Y`], 0.05);
 
+  // 3. Corregimos la matemática de la escala
   if (esVertical) {
-    logoMesh.visible = false; // El logo debería DESAPARECER por completo
-    console.log("HE OCULTADO EL LOGO");
-    // --- PRUEBA DE DIAGNÓSTICO ---
-    const escalaGigante = anchoOriginal * 5;
-    logoMesh.scale.set(escalaGigante, escalaGigante * aspectImagen, 1);
-
-    console.log(
-      `%c [PRUEBA] Escala Original: ${anchoOriginal} | Aplicando x5: ${escalaGigante}`,
-      "background: red; color: white; padding: 5px;",
-    );
+    // En vertical (video), la escala debe ser pura para que se vea grande
+    logoMesh.scale.set(ancho, ancho * aspectImagen, 1);
   } else {
-    // Modo normal para horizontal
+    // En horizontal (editor), compensamos el canvas como Three.js requiere
     const aspectCanvas = tamanoCanvas.width / tamanoCanvas.height;
-    logoMesh.scale.set(
-      anchoOriginal,
-      anchoOriginal * aspectImagen * aspectCanvas,
-      1,
-    );
+    logoMesh.scale.set(ancho, ancho * aspectImagen * aspectCanvas, 1);
   }
 }
 
