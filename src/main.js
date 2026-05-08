@@ -384,6 +384,7 @@ function cargarImagenAsync(path) {
 
 
 
+
 function aplicarPaleta(idPaleta) {
   const paleta =
     paletasDisponibles.find((item) => item.id === idPaleta) ||
@@ -399,6 +400,13 @@ async function actualizarTextura() {
   textureVersion++;
   const currentVersion = textureVersion;
 
+  try {
+    await document.fonts.load(`10px "Anton"`); 
+    // Si prefieres intentar con Impact (solo si la tienes local):
+    // await document.fonts.load(`10px "Impact"`);
+  } catch (e) {
+    console.warn("La fuente tardó mucho o no cargó, usando fuente de respaldo.");
+  }
   // 1. LIMPIEZA Y FONDO BASE
   ctx.clearRect(0, 0, 2048, 2048);
   ctx.fillStyle = settings.colorBloqueA;
