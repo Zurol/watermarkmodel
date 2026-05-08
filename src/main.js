@@ -407,10 +407,17 @@ async function actualizarTextura() {
   } catch (e) {
     console.warn("La fuente tardó mucho o no cargó, usando fuente de respaldo.");
   }
+
+
   // 1. LIMPIEZA Y FONDO BASE
   ctx.clearRect(0, 0, 2048, 2048);
   ctx.fillStyle = settings.colorBloqueA;
   ctx.fillRect(0, 0, 2048, 2048);
+
+  const fuenteFinal = "Anton"; // O settings.fuente si ya lo actualizaste
+  ctx.font = `${settings.negrita ? '700' : '500'} ${settings.tamanioNombre}px "${fuenteFinal}"`;
+
+  //console.log(ctx.font);
 
   // 2. DIBUJAR BLOQUES
   if (settings.mostrarBloques) {
