@@ -139,7 +139,8 @@ const paletasDisponibles = [
   },
 ];
 
-const fuentesDisponibles = ["Impact", "Arial", "Verdana", "Courier New"];
+const fuentesDisponibles = ["Anton", "Sharp Grotesk", "Arial", "Verdana"];
+const fuenteTextoPredeterminada = "Anton";
 const anchoMaximoNombreEspalda = 650;
 const maxCaracteresNumero = 2;
 const limitarNumero = (numero) => String(numero).slice(0, maxCaracteresNumero);
@@ -150,7 +151,7 @@ const settings = {
   nombre: "JUGADOR",
   numero: "10",
   modeloTorso: modelosTorsoDisponibles["Torso A"],
-  fuente: "Impact",
+  fuente: fuenteTextoPredeterminada,
   negrita: false,
   tamanioNombre: 175,
   tamanioNumero: 355,
@@ -396,9 +397,23 @@ function aplicarPaleta(idPaleta) {
   settings.colorTexto = paleta.terciario;
 }
 
+async function cargarFuenteCanvas(familia, pesos = ["500", "700"]) {
+  if (!document.fonts?.load) return;
+
+  try {
+    await Promise.all(
+      pesos.map((peso) => document.fonts.load(`${peso} 64px "${familia}"`)),
+    );
+    await document.fonts.ready;
+  } catch (error) {
+    console.warn(`No se pudo cargar la fuente "${familia}"`, error);
+  }
+}
+
 async function actualizarTextura() {
   textureVersion++;
   const currentVersion = textureVersion;
+  await cargarFuenteCanvas(settings.fuente);
 
   try {
     await document.fonts.load(`10px "Anton"`); 
@@ -821,25 +836,17 @@ function actualizarLogoPasaElBalon() {
   const prefijo = esVertical ? "logoPasaVertical" : "logoPasaHorizontal";
 
   // 1. Corregimos para que lea el slider correcto según el modo
-  const ancho = esVertical
-    ? settings.videoLogoEscalaFinalVertical
-    : settings.logoPasaHorizontalEscala;
+  const ancho = settings[`${prefijo}Escala`];
 
   const textura = logoMaterial.map;
   const aspectImagen = textura.image.height / textura.image.width;
 
   // 2. Posicionamos (esto ya lo tenías bien)
-  logoMesh.position.set(settings[`${prefijo}X`], settings[`${prefijo}Y`], 0.05);
+  logoMesh.position.set(settings[`${prefijo}X`], settings[`${prefijo}Y`], 0);
 
   // 3. Corregimos la matemática de la escala
-  if (esVertical) {
-    // En vertical (video), la escala debe ser pura para que se vea grande
-    logoMesh.scale.set(ancho, ancho * aspectImagen, 1);
-  } else {
-    // En horizontal (editor), compensamos el canvas como Three.js requiere
-    const aspectCanvas = tamanoCanvas.width / tamanoCanvas.height;
-    logoMesh.scale.set(ancho, ancho * aspectImagen * aspectCanvas, 1);
-  }
+  const aspectCanvas = tamanoCanvas.width / tamanoCanvas.height;
+  logoMesh.scale.set(ancho, ancho * aspectImagen * aspectCanvas, 1);
 }
 
 actualizarLogoPasaElBalon();
@@ -1429,9 +1436,14 @@ function ajustarModeloParaVideo() {
 }
 
 function aplicarEscalaLogoVideo(escala) {
+  const multiplicadorVertical = camera.aspect < 1
+    ? settings.videoLogoEscalaFinalVertical
+    : 1;
+  const escalaFinal = escala * multiplicadorVertical;
+
   logoMesh.scale.set(
-    escala,
-    escala *
+    escalaFinal,
+    escalaFinal *
       ((logoMaterial.map?.image?.height || 1) /
         (logoMaterial.map?.image?.width || 1)) *
       (tamanoCanvas.width / tamanoCanvas.height),
@@ -2005,7 +2017,7 @@ fLogoPasa
   .name("Vertical Y")
   .onChange(actualizarLogoPasaElBalon);
 fLogoPasa
-  .add(settings, "logoPasaVerticalEscala", 0.05, 1.4, 0.01)
+  .add(settings, "logoPasaVerticalEscala", 0.05, 4, 0.01)
   .name("Vertical Escala")
   .onChange(actualizarLogoPasaElBalon);
 fLogoPasa.close();
@@ -2051,6 +2063,9 @@ fCoreografiaVideo
 fCoreografiaVideo
   .add(settings, "videoLogoEscalaFinal", 0.05, 1.2, 0.01)
   .name("Logo escala final");
+fCoreografiaVideo
+  .add(settings, "videoLogoEscalaFinalVertical", 1, 4, 0.05)
+  .name("Multiplicador logo vertical");
 fCoreografiaVideo.add(settings, "videoHashtag").name("Hashtag");
 fCoreografiaVideo.add(settings, "videoHashtagX", -1, 1, 0.01).name("Hashtag X");
 fCoreografiaVideo.add(settings, "videoHashtagY", -1, 1, 0.01).name("Hashtag Y");

@@ -1,7 +1,7 @@
 /* Regular */
 @font-face {
   font-family: "Sharp Grotesk";
-  src: url("/fonts/SharpGrotesk-Light15.woff2") format("woff2");
+  src: url("/watermarkmodel/fonts/SharpGrotesk-Light15.woff2") format("woff2");
   font-weight: 300; /* Normal */
   font-style: normal;
   font-display: swap;
@@ -9,7 +9,7 @@
 
 @font-face {
   font-family: "Sharp Grotesk";
-  src: url("/fonts/SharpGrotesk-Light25.woff2") format("woff2");
+  src: url("/watermarkmodel/fonts/SharpGrotesk-Light25.woff2") format("woff2");
   font-weight: 400; /* Normal */
   font-style: normal;
   font-display: swap;
@@ -17,7 +17,7 @@
 
 @font-face {
   font-family: "Sharp Grotesk";
-  src: url("/fonts/SharpGrotesk-Book20.woff2") format("woff2");
+  src: url("/watermarkmodel/fonts/SharpGrotesk-Book20.woff2") format("woff2");
   font-weight: 100; /* Normal */
   font-style: normal;
   font-display: swap;
@@ -26,7 +26,7 @@
 /* SemiBold */
 @font-face {
   font-family: "Sharp Grotesk";
-  src: url("/fonts/SharpGrotesk-Bold20.woff2") format("woff2");
+  src: url("/watermarkmodel/fonts/SharpGrotesk-Bold20.woff2") format("woff2");
   font-weight: 600; /* Valor numérico para SemiBold */
   font-style: normal;
   font-display: swap;
@@ -35,7 +35,7 @@
 /* Bold */
 @font-face {
   font-family: "Sharp Grotesk";
-  src: url("/fonts/SharpGrotesk-SemiBold25.woff2") format("woff2");
+  src: url("/watermarkmodel/fonts/SharpGrotesk-SemiBold25.woff2") format("woff2");
   font-weight: 700; /* Bold */
   font-style: normal;
   font-display: swap;
