@@ -3,6 +3,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { HDRLoader } from "three/examples/jsm/loaders/HDRLoader";
 import GUI from "lil-gui";
+import lottie from "lottie-web/build/player/lottie_light";
 
 let textureVersion = 0;
 
@@ -21,6 +22,11 @@ const texturasDisponibles = [
   "./pattern4.svg",
   "./pattern5.svg",
 ];
+
+const modelosTorsoDisponibles = {
+  "Torso A": "./ModeloFem.glb",
+  "Torso B": "./ModeloMasc.glb",
+};
 
 const obtenerLogoActivo = () =>
   texturasDisponibles.indexOf(settings.texturaBase) + 1;
@@ -178,6 +184,7 @@ const inclinacionPlayeraCuello = THREE.MathUtils.degToRad(5);
 const settings = {
   nombre: "JUGADOR",
   numero: "10",
+  modeloTorso: modelosTorsoDisponibles["Torso A"],
   fuente: "Impact",
   negrita: false,
   tamanioNombre: 175,
@@ -274,8 +281,34 @@ const settings = {
   colorEmissive: "#000000",
   mostrarPiso: true,
   opacidadSombra: 0.3,
+  // CoreografÃ­a de video
+  videoDuracionMs: 5000,
+  videoModeloProporcionPantalla: 0,
+  videoGiroInicioMs: 200,
+  videoGiroDuracionMs: 2200,
+  videoGiroGrados: 360,
+  videoGiroEje: "y",
+  videoOverlayInicioMs: 1200,
+  videoOverlayFadeMs: 500,
+  videoLogoX: 0,
+  videoLogoY: 0.65,
+  videoLogoEscalaInicio: 0.25,
+  videoLogoEscalaFinal: 0.6,
+  videoHashtag: " #PASAELBALÓN ",
+  videoHashtagX: 0,
+  videoHashtagY: -0.7,
+  videoHashtagEscala: 0.5,
+  videoDesactivarHDRI: false,
+  videoReflectoresActivos: false,
+  videoReflectoresInicioMs: 200,
+  videoReflectoresFadeMs: 700,
+  videoReflectorIntensidad: 9,
+  videoReflectorColor: "#fff4dd",
+  cameraVideoPos: { x: 0, y: 1.2, z: 3.5 }, // Coordenadas fijas para el video
+  cameraVideoLookAt: { x: 0, y: 1.0, z: 0 }, // Hacia dónde mira la cámara
   // Acciones
   grabarVideo: () => prepararGrabacion("horizontal"),
+  previsualizarCoreografia: () => previsualizarCoreografiaVideo(),
   descargarImagen: () => descargarCaptura(),
   descargarSoloTextura: () => descargarTexturaGenerada(),
 };
@@ -288,7 +321,7 @@ textCanvas.height = 2048;
 
 // Previsualización Inferior Izquierda
 textCanvas.style.cssText = `
-    position: absolute; bottom: 20px; left: 20px; 
+    position: absolute; bottom: 20px; left: 20px;
     width: 256px; height: 256px; display:none;
     border: 2px solid white; z-index: 1000; background: #000;
   `;
@@ -559,6 +592,7 @@ async function actualizarTextura() {
 // --- 4. ESCENA 3D Y RENDERER ---
 const appContainer = document.getElementById("app");
 const loaderElement = document.getElementById("canvas-loader");
+const loaderLottieElement = document.getElementById("loader-lottie");
 const recursosInicialesPendientes = new Set([
   "fondo",
   "logoPasaElBalon",
@@ -566,15 +600,60 @@ const recursosInicialesPendientes = new Set([
   "modelo",
   "textura",
 ]);
+const pausaLoaderInicialMs = 250;
+let recursosInicialesListos = false;
+let animacionLoaderCompleta = !loaderLottieElement;
+let loaderOcultarTimer = null;
+
+function ocultarLoaderInicialCuandoListo() {
+  if (!recursosInicialesListos || !animacionLoaderCompleta) return;
+
+  if (loaderOcultarTimer) clearTimeout(loaderOcultarTimer);
+
+  loaderOcultarTimer = setTimeout(() => {
+    loaderOcultarTimer = null;
+    requestAnimationFrame(() => {
+      renderFrame();
+      loaderElement?.classList.add("is-hidden");
+    });
+  }, 0);
+}
+
+function marcarAnimacionLoaderCompleta() {
+  animacionLoaderCompleta = true;
+  ocultarLoaderInicialCuandoListo();
+}
+
+if (loaderLottieElement) {
+  try {
+    const loaderLottie = lottie.loadAnimation({
+      container: loaderLottieElement,
+      renderer: "svg",
+      loop: false,
+      autoplay: true,
+      path: `${import.meta.env.BASE_URL}animacion-lottie.json`,
+    });
+    loaderLottie.stop();
+
+    loaderLottie.addEventListener("DOMLoaded", () => {
+      loaderLottieElement.classList.add("is-loaded");
+      loaderElement?.classList.add("has-lottie");
+      setTimeout(() => loaderLottie.play(), pausaLoaderInicialMs);
+    });
+    loaderLottie.addEventListener("complete", marcarAnimacionLoaderCompleta);
+    loaderLottie.addEventListener("data_failed", marcarAnimacionLoaderCompleta);
+  } catch (error) {
+    console.error("No se pudo cargar la animación del loader", error);
+    marcarAnimacionLoaderCompleta();
+  }
+}
 
 function marcarRecursoInicialListo(nombre) {
   recursosInicialesPendientes.delete(nombre);
   if (recursosInicialesPendientes.size > 0) return;
 
-  requestAnimationFrame(() => {
-    renderFrame();
-    loaderElement?.classList.add("is-hidden");
-  });
+  recursosInicialesListos = true;
+  ocultarLoaderInicialCuandoListo();
 }
 
 function obtenerTamanoCanvas() {
@@ -599,6 +678,7 @@ const camera = new THREE.PerspectiveCamera(
   1000,
 );
 camera.position.set(0, 0, -0.85);
+camera.position.set(0, 0.4, 2.5);
 
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
@@ -805,6 +885,75 @@ actualizarLogoPasaElBalon();
 
 bgScene.add(logoMesh);
 
+function crearTexturaHashtag(texto) {
+  const canvas = document.createElement("canvas");
+  const tempCtx = canvas.getContext("2d");
+
+  // 1. Definimos el estilo de fuente primero para medir
+  const fontSize = 150;
+  tempCtx.font = `900 ${fontSize}px "Sharp Grotesk", Impact, Arial, sans-serif`;
+
+  // 2. Medimos cuánto mide el texto realmente
+  const metrica = tempCtx.measureText(texto);
+  const padding = 40; // Espacio extra para que no roce los bordes
+
+  // 3. Ajustamos el tamaño del canvas al texto real
+  canvas.width = metrica.width + padding;
+  canvas.height = fontSize * 1.4; // Altura proporcional a la fuente
+
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  // Re-aplicamos la fuente porque al cambiar el width/height del canvas se resetea
+  ctx.font = `900 ${fontSize}px "Sharp Grotesk", Impact, Arial, sans-serif`;
+
+  // Dibujamos justo en el centro del nuevo tamaño
+  ctx.fillText(texto, canvas.width / 2, canvas.height / 2);
+
+  const textura = new THREE.CanvasTexture(canvas);
+  textura.colorSpace = THREE.SRGBColorSpace;
+  return textura;
+}
+
+const hashtagMaterial = new THREE.MeshBasicMaterial({
+  map: crearTexturaHashtag(settings.videoHashtag),
+  transparent: true,
+  opacity: 0,
+  depthTest: false,
+  depthWrite: false,
+  toneMapped: false,
+});
+const hashtagMesh = new THREE.Mesh(
+  new THREE.PlaneGeometry(1, 1),
+  hashtagMaterial,
+);
+hashtagMesh.visible = false;
+bgScene.add(hashtagMesh);
+
+function actualizarHashtagVideo() {
+  const textura = hashtagMaterial.map;
+  if (!textura || !textura.image) return;
+
+  const aspectImagen = textura.image.width / textura.image.height;
+
+  hashtagMesh.position.set(settings.videoHashtagX, settings.videoHashtagY, 0);
+
+  // Dividimos entre 10 (o el factor que prefieras) para que
+  // en el GUI puedas usar valores como 1, 2 o 3 en lugar de 0.1
+  const factorAjuste = 0.1;
+
+  hashtagMesh.scale.set(
+    settings.videoHashtagEscala * aspectImagen * factorAjuste,
+    settings.videoHashtagEscala * factorAjuste,
+    1,
+  );
+}
+
+actualizarHashtagVideo();
+
 // Cargar textura
 logoTextureLoader.load(
   "./LogoPasaElBalon.png",
@@ -827,6 +976,8 @@ controls.minDistance = 0.55;
 controls.maxDistance = 1.15;
 controls.minPolarAngle = Math.PI / 2;
 controls.maxPolarAngle = Math.PI / 2;
+controls.target.set(0, 0, 0);
+
 controls.update();
 
 const ambientLight = new THREE.AmbientLight(
@@ -853,7 +1004,72 @@ function actualizarLuces() {
   );
 }
 
+function crearReflectorVideo(lado) {
+  const grupo = new THREE.Group();
+  const materialCuerpo = new THREE.MeshStandardMaterial({
+    color: 0x20242c,
+    roughness: 0.42,
+    metalness: 0.65,
+    transparent: true,
+    opacity: 0,
+  });
+  const materialLente = new THREE.MeshBasicMaterial({
+    color: 0xfff4dd,
+    transparent: true,
+    opacity: 0,
+  });
+
+  const cuerpo = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.1, 0.18, 32),
+    materialCuerpo,
+  );
+  cuerpo.rotation.x = Math.PI / 2;
+  cuerpo.castShadow = true;
+  grupo.add(cuerpo);
+
+  const lente = new THREE.Mesh(
+    new THREE.CircleGeometry(0.078, 32),
+    materialLente,
+  );
+  lente.position.z = -0.095;
+  grupo.add(lente);
+
+  const luz = new THREE.SpotLight(
+    settings.videoReflectorColor,
+    0,
+    2.5,
+    0.42,
+    0.8,
+    1,
+  );
+  luz.position.set(0, 0, -0.04);
+  luz.target.position.set(-lado * 0.4, 0.4, 0.25);
+  grupo.add(luz);
+  scene.add(luz.target);
+
+  grupo.position.set(lado * 0.46, -0.52, -0.42);
+  grupo.rotation.set(
+    THREE.MathUtils.degToRad(-18),
+    lado * THREE.MathUtils.degToRad(28),
+    0,
+  );
+  grupo.visible = false;
+
+  scene.add(grupo);
+
+  return {
+    grupo,
+    cuerpo,
+    lente,
+    luz,
+    materiales: [materialCuerpo, materialLente],
+  };
+}
+
+const reflectoresVideo = [crearReflectorVideo(-1), crearReflectorVideo(1)];
+
 let modelo3D, hdriEnvMap;
+let solicitudModeloActual = 0;
 const outlineMaterials = [];
 
 function crearMaterialOutline() {
@@ -993,6 +1209,87 @@ function actualizarOutline() {
   });
 }
 
+function liberarModelo(modelo) {
+  const materiales = new Set();
+  const geometrias = new Set();
+
+  modelo.traverse((c) => {
+    if (!c.isMesh) return;
+
+    if (c.geometry) geometrias.add(c.geometry);
+
+    const listaMateriales = Array.isArray(c.material)
+      ? c.material
+      : [c.material];
+    for (const material of listaMateriales) {
+      if (!material) continue;
+      materiales.add(material);
+
+      const index = outlineMaterials.indexOf(material);
+      if (index !== -1) outlineMaterials.splice(index, 1);
+    }
+  });
+
+  materiales.forEach((material) => material.dispose());
+  geometrias.forEach((geometry) => geometry.dispose());
+}
+
+function prepararModelo(gltf) {
+  const modelo = gltf.scene;
+  const modelMeshes = [];
+
+  modelo.traverse((c) => {
+    if (c.isMesh && !c.userData?.isOutlineMesh) {
+      c.castShadow = c.receiveShadow = true;
+      c.material = new THREE.MeshStandardMaterial({ map: textTexture });
+      modelMeshes.push(c);
+    }
+  });
+
+  for (const mesh of modelMeshes) {
+    mesh.add(crearOutlineMesh(mesh));
+  }
+
+  modelo.position.set(0, -0.3, 0);
+  modelo.rotation.x = inclinacionPlayeraCuello;
+
+  return modelo;
+}
+
+function cargarModeloTorso(rutaModelo, esCargaInicial = false) {
+  const solicitud = ++solicitudModeloActual;
+
+  gltfLoader.load(
+    rutaModelo,
+    (gltf) => {
+      const nuevoModelo = prepararModelo(gltf);
+
+      if (solicitud !== solicitudModeloActual) {
+        liberarModelo(nuevoModelo);
+        return;
+      }
+
+      if (modelo3D) {
+        scene.remove(modelo3D);
+        liberarModelo(modelo3D);
+      }
+
+      modelo3D = nuevoModelo;
+      scene.add(modelo3D);
+      actualizarMateriales();
+      actualizarOutline();
+      renderFrame();
+
+      if (esCargaInicial) marcarRecursoInicialListo("modelo");
+    },
+    undefined,
+    (error) => {
+      console.error(`No se pudo cargar ${rutaModelo}`, error);
+      if (esCargaInicial) marcarRecursoInicialListo("modelo");
+    },
+  );
+}
+
 function descargarCaptura() {
   renderFrame();
   renderer.domElement.toBlob((blob) => {
@@ -1048,6 +1345,8 @@ function actualizarEstadoVideo(mensaje, activo) {
   const loaderText = loaderElement?.querySelector("span");
   if (loaderText && mensaje) loaderText.textContent = mensaje;
   loaderElement?.classList.toggle("is-hidden", !activo);
+  loaderElement?.classList.toggle("is-video-loader", activo);
+  loaderElement?.classList.remove("is-video-result");
   if (htmlControls.loaderActions) htmlControls.loaderActions.hidden = true;
   if (htmlControls.capturar) htmlControls.capturar.disabled = activo;
   if (htmlControls.story) htmlControls.story.disabled = activo;
@@ -1116,6 +1415,8 @@ function mostrarVideoListo() {
   const loaderText = loaderElement?.querySelector("span");
   if (loaderText) loaderText.textContent = "Video listo";
   loaderElement?.classList.remove("is-hidden");
+  loaderElement?.classList.remove("is-video-loader");
+  loaderElement?.classList.add("is-video-result");
   if (htmlControls.loaderActions) htmlControls.loaderActions.hidden = false;
   if (htmlControls.capturar) htmlControls.capturar.disabled = false;
   if (htmlControls.story) htmlControls.story.disabled = false;
@@ -1132,10 +1433,215 @@ function aplicarFormatoGrabacion(orientacion) {
   renderer.setSize(formato.width, formato.height, false);
   actualizarRenderTargets();
   actualizarLogoPasaElBalon();
+  actualizarHashtagVideo();
+}
+
+const clamp01 = (valor) => Math.min(1, Math.max(0, valor));
+const easeOutCubic = (valor) => 1 - Math.pow(1 - clamp01(valor), 3);
+
+let coreografiaGrabacion = null;
+let previewCoreografiaTimer = null;
+
+function ajustarModeloParaVideo() {
+  if (!modelo3D) return;
+  if (settings.videoModeloProporcionPantalla <= 0) return;
+
+  const box = new THREE.Box3().setFromObject(modelo3D);
+  const size = box.getSize(new THREE.Vector3());
+  if (!Number.isFinite(size.y) || size.y <= 0) return;
+
+  const distanciaCamara = camera.position.distanceTo(controls.target);
+  const altoVisible =
+    2 * distanciaCamara * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const escalaObjetivo =
+    (altoVisible * settings.videoModeloProporcionPantalla) / size.y;
+
+  modelo3D.scale.multiplyScalar(escalaObjetivo);
+}
+
+function aplicarEscalaLogoVideo(escala) {
+  logoMesh.scale.set(
+    escala,
+    escala *
+      ((logoMaterial.map?.image?.height || 1) /
+        (logoMaterial.map?.image?.width || 1)) *
+      (tamanoCanvas.width / tamanoCanvas.height),
+    1,
+  );
+}
+
+function posicionarOverlaysVideo() {
+  logoMesh.position.set(settings.videoLogoX, settings.videoLogoY, 0);
+  aplicarEscalaLogoVideo(settings.videoLogoEscalaInicio);
+
+  if (hashtagMaterial.map) hashtagMaterial.map.dispose();
+  hashtagMaterial.map = crearTexturaHashtag(settings.videoHashtag);
+  hashtagMaterial.needsUpdate = true;
+  actualizarHashtagVideo();
+}
+
+function fijarCamaraParaVideo() {
+  // 1. Deshabilitamos controles para que el usuario no interfiera
+  controls.enabled = false;
+  controls.update();
+
+  // 2. Seteamos la posición exacta
+  camera.position.set(
+    settings.cameraVideoPos.x,
+    settings.cameraVideoPos.y,
+    settings.cameraVideoPos.z,
+  );
+
+  // 3. Apuntamos al centro del modelo (o al pecho)
+  camera.lookAt(
+    settings.cameraVideoLookAt.x,
+    settings.cameraVideoLookAt.y,
+    settings.cameraVideoLookAt.z,
+  );
+
+  // 4. Actualizamos la matriz y los controles
+  camera.updateProjectionMatrix();
+  controls.update();
+}
+
+function iniciarCoreografiaGrabacion() {
+  posicionarOverlaysVideo();
+
+  coreografiaGrabacion = {
+    inicio: performance.now(),
+    modeloRotacionInicial: modelo3D?.rotation.clone() || null,
+    modeloEscalaInicial: modelo3D?.scale.clone() || null,
+    logoVisibleInicial: logoMesh.visible,
+    logoOpacidadInicial: logoMaterial.opacity,
+    logoEscalaInicial: logoMesh.scale.clone(),
+    hashtagVisibleInicial: hashtagMesh.visible,
+    hashtagOpacidadInicial: hashtagMaterial.opacity,
+    controlesActivosInicial: controls.enabled,
+    usarHDRIInicial: settings.usarHDRI,
+    environmentInicial: scene.environment,
+  };
+
+  ajustarModeloParaVideo();
+  controls.enabled = false;
+  if (settings.videoDesactivarHDRI) {
+    settings.usarHDRI = false;
+    scene.environment = null;
+    actualizarMateriales();
+  }
+  logoMesh.visible = true;
+  logoMaterial.opacity = 0;
+  hashtagMesh.visible = true;
+  hashtagMaterial.opacity = 0;
+
+  for (const reflector of reflectoresVideo) {
+    reflector.grupo.visible = settings.videoReflectoresActivos;
+    reflector.luz.color.set(settings.videoReflectorColor);
+    reflector.luz.intensity = 0;
+    for (const material of reflector.materiales) material.opacity = 0;
+  }
+}
+
+function actualizarCoreografiaGrabacion(ahora = performance.now()) {
+  if (!coreografiaGrabacion) return;
+
+  const tiempo = ahora - coreografiaGrabacion.inicio;
+  const progresoGiro = easeOutCubic(
+    (tiempo - settings.videoGiroInicioMs) / settings.videoGiroDuracionMs,
+  );
+  const giroRad = THREE.MathUtils.degToRad(
+    settings.videoGiroGrados * progresoGiro,
+  );
+
+  if (modelo3D && coreografiaGrabacion.modeloRotacionInicial) {
+    modelo3D.rotation.copy(coreografiaGrabacion.modeloRotacionInicial);
+    modelo3D.rotation[settings.videoGiroEje] += giroRad;
+  }
+
+  const overlayAlpha = easeOutCubic(
+    (tiempo - settings.videoOverlayInicioMs) / settings.videoOverlayFadeMs,
+  );
+  logoMaterial.opacity = overlayAlpha;
+  hashtagMaterial.opacity = overlayAlpha;
+  aplicarEscalaLogoVideo(
+    THREE.MathUtils.lerp(
+      settings.videoLogoEscalaInicio,
+      settings.videoLogoEscalaFinal,
+      overlayAlpha,
+    ),
+  );
+
+  const reflectorAlpha = settings.videoReflectoresActivos
+    ? easeOutCubic(
+        (tiempo - settings.videoReflectoresInicioMs) /
+          settings.videoReflectoresFadeMs,
+      )
+    : 0;
+
+  for (const reflector of reflectoresVideo) {
+    reflector.luz.intensity =
+      settings.videoReflectorIntensidad * reflectorAlpha;
+    for (const material of reflector.materiales)
+      material.opacity = reflectorAlpha;
+  }
+}
+
+function finalizarCoreografiaGrabacion() {
+  if (!coreografiaGrabacion) return;
+
+  if (modelo3D && coreografiaGrabacion.modeloRotacionInicial) {
+    modelo3D.rotation.copy(coreografiaGrabacion.modeloRotacionInicial);
+  }
+  if (modelo3D && coreografiaGrabacion.modeloEscalaInicial) {
+    modelo3D.scale.copy(coreografiaGrabacion.modeloEscalaInicial);
+  }
+
+  controls.enabled = coreografiaGrabacion.controlesActivosInicial;
+  settings.usarHDRI = coreografiaGrabacion.usarHDRIInicial;
+  scene.environment = coreografiaGrabacion.environmentInicial;
+  actualizarMateriales();
+  logoMesh.visible = coreografiaGrabacion.logoVisibleInicial;
+  logoMaterial.opacity = coreografiaGrabacion.logoOpacidadInicial;
+  logoMesh.scale.copy(coreografiaGrabacion.logoEscalaInicial);
+  hashtagMesh.visible = coreografiaGrabacion.hashtagVisibleInicial;
+  hashtagMaterial.opacity = coreografiaGrabacion.hashtagOpacidadInicial;
+
+  for (const reflector of reflectoresVideo) {
+    reflector.grupo.visible = false;
+    reflector.luz.intensity = 0;
+    for (const material of reflector.materiales) material.opacity = 0;
+  }
+
+  coreografiaGrabacion = null;
+  actualizarLogoPasaElBalon();
+  actualizarHashtagVideo();
   renderFrame();
 }
 
+function detenerPreviewCoreografiaVideo() {
+  if (previewCoreografiaTimer) {
+    clearTimeout(previewCoreografiaTimer);
+    previewCoreografiaTimer = null;
+  }
+  finalizarCoreografiaGrabacion();
+}
+
+function previsualizarCoreografiaVideo() {
+  if (mediaRecorder && mediaRecorder.state === "recording") return;
+
+  detenerPreviewCoreografiaVideo();
+  iniciarCoreografiaGrabacion();
+  actualizarCoreografiaGrabacion(coreografiaGrabacion?.inicio);
+  renderFrame();
+
+  previewCoreografiaTimer = setTimeout(() => {
+    previewCoreografiaTimer = null;
+    finalizarCoreografiaGrabacion();
+  }, settings.videoDuracionMs);
+}
+
 function prepararGrabacion(orientacion = "horizontal") {
+  prepararCamaraParaVideo();
+
   if (!("MediaRecorder" in window) || !renderer.domElement.captureStream) {
     console.error("MediaRecorder no está disponible en este navegador.");
     return;
@@ -1146,7 +1652,11 @@ function prepararGrabacion(orientacion = "horizontal") {
     return;
   }
 
+  detenerPreviewCoreografiaVideo();
   aplicarFormatoGrabacion(orientacion);
+  iniciarCoreografiaGrabacion();
+  actualizarCoreografiaGrabacion(coreografiaGrabacion?.inicio);
+  renderFrame();
   actualizarEstadoVideo(`Grabando video ${orientacion}`, true);
 
   const stream = renderer.domElement.captureStream(30);
@@ -1169,6 +1679,7 @@ function prepararGrabacion(orientacion = "horizontal") {
       clearTimeout(recordingTimeout);
       recordingTimeout = null;
     }
+    finalizarCoreografiaGrabacion();
     redimensionarRenderer();
     actualizarEstadoVideo("", false);
   };
@@ -1183,6 +1694,7 @@ function prepararGrabacion(orientacion = "horizontal") {
 
     const blobType = mediaRecorder.mimeType || mimeType || "video/webm";
     videoGenerado = new Blob(recordedChunks, { type: blobType });
+    finalizarCoreografiaGrabacion();
     redimensionarRenderer();
     mostrarVideoListo();
   };
@@ -1191,7 +1703,7 @@ function prepararGrabacion(orientacion = "horizontal") {
   recordingTimeout = setTimeout(() => {
     if (mediaRecorder && mediaRecorder.state === "recording")
       mediaRecorder.stop();
-  }, 5000);
+  }, settings.videoDuracionMs);
 }
 
 function actualizarMateriales() {
@@ -1277,37 +1789,8 @@ new HDRLoader().load(
   },
 );
 
-new GLTFLoader().load(
-  "./TshirtPajaro_.glb",
-  (gltf) => {
-    modelo3D = gltf.scene;
-    const modelMeshes = [];
-
-    modelo3D.traverse((c) => {
-      if (c.isMesh && !c.userData?.isOutlineMesh) {
-        c.castShadow = c.receiveShadow = true;
-        c.material = new THREE.MeshStandardMaterial({ map: textTexture });
-        modelMeshes.push(c);
-      }
-    });
-
-    for (const mesh of modelMeshes) {
-      mesh.add(crearOutlineMesh(mesh));
-    }
-
-    scene.add(modelo3D);
-    modelo3D.position.set(0, -0.3, 0);
-    modelo3D.rotation.x = inclinacionPlayeraCuello;
-    actualizarMateriales();
-    actualizarOutline();
-    marcarRecursoInicialListo("modelo");
-  },
-  undefined,
-  (error) => {
-    console.error("No se pudo cargar TshirtPajaro.glb", error);
-    marcarRecursoInicialListo("modelo");
-  },
-);
+const gltfLoader = new GLTFLoader();
+cargarModeloTorso(settings.modeloTorso, true);
 
 // --- 6. GUI (TODOS LOS MENÚS RESTAURADOS) ---
 
@@ -1334,6 +1817,10 @@ gui.hide();
 
 // Carpeta 1: Colores y Prenda
 const fPrenda = gui.addFolder("Configuración de Prenda");
+const modeloTorsoGui = fPrenda
+  .add(settings, "modeloTorso", modelosTorsoDisponibles)
+  .name("Modelo")
+  .onChange(cargarModeloTorso);
 fPrenda
   .add(settings, "texturaBase", texturasDisponibles)
   .name("Textura Base")
@@ -1562,6 +2049,66 @@ fEscena
   .name("Luz Focal")
   .onChange(actualizarLuces);
 
+const fCoreografiaVideo = gui.addFolder("Coreografía Video");
+fCoreografiaVideo
+  .add(settings, "videoDuracionMs", 1000, 10000, 100)
+  .name("Duración ms");
+fCoreografiaVideo
+  .add(settings, "videoModeloProporcionPantalla", 0, 1.2, 0.01)
+  .name("Modelo pantalla (0=original)");
+fCoreografiaVideo
+  .add(settings, "videoGiroInicioMs", 0, 3000, 50)
+  .name("Inicio giro ms");
+fCoreografiaVideo
+  .add(settings, "videoGiroDuracionMs", 200, 5000, 50)
+  .name("Duración giro ms");
+fCoreografiaVideo
+  .add(settings, "videoGiroGrados", -720, 720, 1)
+  .name("Grados giro");
+fCoreografiaVideo
+  .add(settings, "videoGiroEje", ["x", "y", "z"])
+  .name("Eje giro");
+fCoreografiaVideo
+  .add(settings, "videoOverlayInicioMs", 0, 5000, 50)
+  .name("Inicio logo/texto");
+fCoreografiaVideo
+  .add(settings, "videoOverlayFadeMs", 0, 2000, 50)
+  .name("Fade logo/texto");
+fCoreografiaVideo.add(settings, "videoLogoX", -1, 1, 0.01).name("Logo X");
+fCoreografiaVideo.add(settings, "videoLogoY", -1, 1, 0.01).name("Logo Y");
+fCoreografiaVideo
+  .add(settings, "videoLogoEscalaInicio", 0.05, 1.2, 0.01)
+  .name("Logo escala inicio");
+fCoreografiaVideo
+  .add(settings, "videoLogoEscalaFinal", 0.05, 1.2, 0.01)
+  .name("Logo escala final");
+fCoreografiaVideo.add(settings, "videoHashtag").name("Hashtag");
+fCoreografiaVideo.add(settings, "videoHashtagX", -1, 1, 0.01).name("Hashtag X");
+fCoreografiaVideo.add(settings, "videoHashtagY", -1, 1, 0.01).name("Hashtag Y");
+fCoreografiaVideo
+  .add(settings, "videoHashtagEscala", 0.01, 1, 0.01)
+  .name("Hashtag escala");
+fCoreografiaVideo
+  .add(settings, "videoDesactivarHDRI")
+  .name("Apagar HDRI en video");
+fCoreografiaVideo.add(settings, "videoReflectoresActivos").name("Reflectores");
+fCoreografiaVideo
+  .add(settings, "videoReflectoresInicioMs", 0, 5000, 50)
+  .name("Inicio reflectores");
+fCoreografiaVideo
+  .add(settings, "videoReflectoresFadeMs", 0, 2000, 50)
+  .name("Fade reflectores");
+fCoreografiaVideo
+  .add(settings, "videoReflectorIntensidad", 0, 12, 0.1)
+  .name("Intensidad reflectores");
+fCoreografiaVideo
+  .addColor(settings, "videoReflectorColor")
+  .name("Color reflectores");
+fCoreografiaVideo
+  .add(settings, "previsualizarCoreografia")
+  .name("▶ Previsualizar");
+fCoreografiaVideo.close();
+
 // Botones de Acción
 gui.add(settings, "descargarImagen").name("📸 Capturar PNG");
 gui.add(settings, "grabarVideo").name("🎬 Grabar Story");
@@ -1579,6 +2126,7 @@ const htmlControls = {
   compartirVideo: document.getElementById("video-share"),
   descargarVideo: document.getElementById("video-download"),
   cerrarVideo: document.getElementById("video-close"),
+  modelosTorso: document.querySelectorAll('input[name="modelo-torso"]'),
   texturas: document.querySelectorAll('input[name="textura-base"]'),
   pivotes: document.querySelectorAll('input[name="modo-pivotes"]'),
 };
@@ -1605,6 +2153,16 @@ function bindHtmlControls() {
   htmlControls.colorOutline.addEventListener("input", (event) => {
     settings.outlineColor = event.target.value;
     actualizarOutline();
+  });
+
+  htmlControls.modelosTorso.forEach((input) => {
+    input.checked = input.value === settings.modeloTorso;
+    input.addEventListener("change", (event) => {
+      if (!event.target.checked) return;
+      settings.modeloTorso = event.target.value;
+      modeloTorsoGui.updateDisplay();
+      cargarModeloTorso(settings.modeloTorso);
+    });
   });
 
   if (htmlControls.paletas) {
@@ -1667,6 +2225,7 @@ function bindHtmlControls() {
   );
   htmlControls.cerrarVideo?.addEventListener("click", () => {
     loaderElement?.classList.add("is-hidden");
+    loaderElement?.classList.remove("is-video-loader", "is-video-result");
   });
   htmlControls.panelToggle?.addEventListener("click", () => {
     const abierto = document.body.classList.toggle("panel-open");
@@ -1686,22 +2245,45 @@ function syncHtmlPaleta() {
 // --- 7. LOOP ---
 function animate() {
   requestAnimationFrame(animate);
+  actualizarCoreografiaGrabacion();
   controls.update();
   renderFrame();
 }
 
 function redimensionarRenderer() {
-  tamanoCanvas = obtenerTamanoCanvas();
-  renderer.setPixelRatio(window.devicePixelRatio);
-  camera.aspect = tamanoCanvas.width / tamanoCanvas.height;
+  const rect = appContainer.getBoundingClientRect();
+  camera.aspect = rect.width / rect.height;
+
+  // Esto garantiza que la "lupa" de la cámara no cambie
+  camera.fov = 45;
+
   camera.updateProjectionMatrix();
-  renderer.setSize(tamanoCanvas.width, tamanoCanvas.height, false);
-  actualizarRenderTargets();
+  renderer.setSize(rect.width, rect.height, false);
+
   actualizarLogoPasaElBalon();
+  actualizarHashtagVideo();
 }
 
 let resizeFrame = null;
 let resizeTimer = null;
+
+function prepararCamaraParaVideo() {
+  // 1. Forzamos la posición maestra (ajusta el 2.5 según la distancia que te guste)
+  camera.position.set(0, 0, 2.5);
+
+  // 2. Forzamos el objetivo al centro del modelo
+  controls.target.set(0, -0.3, 0);
+
+  // 3. Forzamos el FOV fijo para que la escala sea siempre la misma
+  camera.fov = 45;
+
+  // 4. Actualizamos todo para que Three.js se entere del cambio
+  camera.updateProjectionMatrix();
+  controls.update();
+
+  // 5. Opcional: Si quieres que el usuario no arruine la toma mientras graba
+  // controls.enabled = false;
+}
 
 function programarRedimension() {
   if (resizeFrame) cancelAnimationFrame(resizeFrame);

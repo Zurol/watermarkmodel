@@ -91,6 +91,19 @@ body {
   pointer-events: none;
 }
 
+.loader-lottie {
+  width: min(180px, 48vw);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+.loader-lottie svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .loader-mark {
   width: 42px;
   height: 42px;
@@ -98,6 +111,20 @@ body {
   border-top-color: #ffd040;
   border-radius: 50%;
   animation: loader-spin 0.9s linear infinite;
+}
+
+.canvas-loader:not(.is-video-loader):not(.is-video-result) > span {
+  display: none;
+}
+
+.canvas-loader.has-lottie:not(.is-video-loader) .loader-mark {
+  display: none;
+}
+
+.canvas-loader.is-video-loader .loader-lottie,
+.canvas-loader.is-video-result .loader-lottie,
+.canvas-loader.is-video-result .loader-mark {
+  display: none;
 }
 
 .loader-actions {
@@ -138,7 +165,7 @@ body {
 #control-panel {
   position: fixed;
   top: 16px;
-  right: 16px;
+  left: 16px;
   z-index: 1200;
   width: min(340px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
@@ -402,7 +429,6 @@ span.palette-swatch span {
 
   #control-panel {
     top: auto;
-    right: 12px;
     bottom: 66px;
     left: 12px;
     width: auto;

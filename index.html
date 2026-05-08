@@ -31,6 +31,23 @@
       </label>
 
       <fieldset class="field">
+        <legend>Modelo</legend>
+        <label
+          ><input
+            type="radio"
+            name="modelo-torso"
+            value="./ModeloFem.glb"
+            checked
+          />
+          Torso A</label
+        >
+        <label
+          ><input type="radio" name="modelo-torso" value="./ModeloMasc.glb" />
+          Torso B</label
+        >
+      </fieldset>
+
+      <fieldset class="field">
         <legend>Patrones Base</legend>
         <label
           ><input
@@ -102,8 +119,15 @@
         </button>
       </div>
     </aside>
-    <div id="canvas-loader" class="canvas-loader" role="status" aria-live="polite">
-      <div class="loader-mark"></div>
+    <div
+      id="canvas-loader"
+      class="canvas-loader"
+      role="status"
+      aria-live="polite"
+      aria-label="Cargando"
+    >
+      <div id="loader-lottie" class="loader-lottie" aria-hidden="true"></div>
+      <div class="loader-mark" aria-hidden="true"></div>
       <span>Cargando</span>
       <div class="loader-actions" hidden>
         <button id="video-share" type="button">Compartir</button>
