@@ -4,279 +4,35 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { HDRLoader } from "three/examples/jsm/loaders/HDRLoader";
 import GUI from "lil-gui";
 import lottie from "lottie-web/build/player/lottie_light";
+import {
+  anchoMaximoNombreEspalda,
+  createInitialSettings,
+  inclinacionPlayeraCuello,
+  limitarNumero,
+  modelosTorsoDisponibles,
+  paletasDisponibles,
+  pivotes,
+  texturasDisponibles,
+} from "./config.js";
 
 let textureVersion = 0;
-
-// --- 1. CONFIGURACIÓN Y DATOS ---
-const pivotes = {
-  Espalda: { x: 1550, y: 510 },
-  Pecho: { x: 1024, y: 700 },
-  "Manga Izq": { x: 1700, y: 1000 },
-  "Manga Der": { x: 340, y: 1000 },
-};
-
-const texturasDisponibles = [
-  "./pattern1.svg",
-  "./pattern2.svg",
-  "./pattern3.svg",
-  "./pattern4.svg",
-  "./pattern5.svg",
-];
-
-const modelosTorsoDisponibles = {
-  "Torso A": "./ModeloMasc.glb",
-  "Torso B": "./ModeloFem.glb",
-};
 
 const obtenerLogoActivo = () =>
   texturasDisponibles.indexOf(settings.texturaBase) + 1;
 
-const paletasDisponibles = [
-  {
-    id: "sunset-pop",
-    nombre: "Sunset Pop",
-    principal: "#f32a4f",
-    secundario: "#f49846",
-    terciario: "#feca3c",
-  },
-  {
-    id: "mint-fresh",
-    nombre: "Mint Fresh",
-    principal: "#4fb270",
-    secundario: "#bdd24c",
-    terciario: "#ffffff",
-  },
-  {
-    id: "pink-breeze",
-    nombre: "Pink Breeze",
-    principal: "#e8528b",
-    secundario: "#92d3e9",
-    terciario: "#ffffff",
-  },
-  {
-    id: "berry-flare",
-    nombre: "Berry Flare",
-    principal: "#d12e4f",
-    secundario: "#ffdd57",
-    terciario: "#ffdd57",
-  },
-  {
-    id: "green-harvest",
-    nombre: "Green Harvest",
-    principal: "#33ab58",
-    secundario: "#4fb270",
-    terciario: "#ffcb24",
-  },
-  {
-    id: "sunburst-gold",
-    nombre: "Sunburst Gold",
-    principal: "#f49846",
-    secundario: "#feca3c",
-    terciario: "#f9dc62",
-  },
-  {
-    id: "violet-pulse",
-    nombre: "Violet Pulse",
-    principal: "#b26fb1",
-    secundario: "#6f3893",
-    terciario: "#ffffff",
-  },
-  {
-    id: "deep-ocean",
-    nombre: "Deep Ocean",
-    principal: "#006bb7",
-    secundario: "#343390",
-    terciario: "#f9dc62",
-  },
-  {
-    id: "crimson-night",
-    nombre: "Crimson Night",
-    principal: "#f32a4f",
-    secundario: "#343390",
-    terciario: "#f9dc62",
-  },
-  {
-    id: "ocean-light",
-    nombre: "Ocean Light",
-    principal: "#006bb7",
-    secundario: "#92d3e9",
-    terciario: "#ffffff",
-  },
-  {
-    id: "violet-storm",
-    nombre: "Violet Storm",
-    principal: "#6f3893",
-    secundario: "#b26fb1",
-    terciario: "#ffffff",
-  },
-  {
-    id: "sunfire-kit",
-    nombre: "Sunfire Kit",
-    principal: "#f49846",
-    secundario: "#f32a4f",
-    terciario: "#ffffff",
-  },
-  {
-    id: "night-playmaker",
-    nombre: "Night Playmaker",
-    principal: "#343390",
-    secundario: "#f32a4f",
-    terciario: "#ffffff",
-  },
-  {
-    id: "rose-legend",
-    nombre: "Rose Legend",
-    principal: "#e8528b",
-    secundario: "#ffffff",
-    terciario: "#343390",
-  },
-  {
-    id: "black-toon",
-    nombre: "Rose Legend",
-    principal: "#0d0d0d",
-    secundario: "#454545",
-    terciario: "#ffffff",
-  },
-];
+// Estado editable de la app
+const settings = createInitialSettings();
 
-const fuenteTextoPredeterminada = "Anton";
-const anchoMaximoNombreEspalda = 650;
-const maxCaracteresNumero = 2;
-const limitarNumero = (numero) => String(numero).slice(0, maxCaracteresNumero);
-const inclinacionPlayeraCuello = THREE.MathUtils.degToRad(5);
+settings.grabarVideo = () => prepararGrabacion("horizontal");
+settings.previsualizarCoreografia = () => previsualizarCoreografiaVideo();
+settings.descargarImagen = () => descargarCaptura();
 
-// --- 2. ESTADO GLOBAL (SETTINGS COMPLETOS) ---
-const settings = {
-  nombre: "JUGADOR",
-  numero: "10",
-  modeloTorso: modelosTorsoDisponibles["Torso A"],
-  fuente: fuenteTextoPredeterminada,
-  negrita: false,
-  tamanioNombre: 175,
-  tamanioNumero: 355,
-  posicionPredefinida: "Espalda",
-  posX: 1550,
-  posY: 510,
-  espaciado: 280,
-  escalaX: 1,
-  escalaY: 1,
-  pechoX: 750,
-  pechoY: 1450,
-  pechoEscala: 0.5,
-  mangaDerX: 490,
-  mangaDerY: 1930,
-  mangaDerEscala: 0.4,
-  colorTexto: paletasDisponibles[0].terciario,
-  texturaBase: texturasDisponibles[0],
-  paletaColor: paletasDisponibles[0].id,
-  colorBloqueA: paletasDisponibles[0].principal,
-  colorBloqueB: paletasDisponibles[0].secundario,
-  colorBloqueC: paletasDisponibles[0].terciario,
-  modoPivotes: "espalda",
-  mostrarBloques: true,
-  mostrarLogos: true,
-  // Logos con tope de escala 10
-  logo1_x: 555,
-  logo1_y: 686,
-  logo1_esc: 1.72,
-  logo1_rot: 0,
-  logo2_x: 555,
-  logo2_y: 686,
-  logo2_esc: 1.72,
-  logo2_rot: 0,
-  logo3_x: 555,
-  logo3_y: 686,
-  logo3_esc: 1.72,
-  logo3_rot: 0,
-  logo4_x: 700,
-  logo4_y: 630,
-  logo4_esc: 0.8,
-  logo4_rot: 0,
-  logo5_x: 700,
-  logo5_y: 630,
-  logo5_esc: 0.8,
-  logo5_rot: 0,
-  // Iluminación
-  intensidadLuzAmbiente: 3.65,
-  intensidadLuzPrincipal: 10,
-  colorLuzAmbiente: "#ffffff",
-  colorLuzPrincipal: "#fff4dd",
-  posicionLuzX: -0.08,
-  posicionLuzY: 0.42,
-  posicionLuzZ: -0.82,
-  distanciaLuz: 1.8,
-  anguloLuz: 1.48,
-  penumbraLuz: 1.0,
-  decayLuz: 1.0,
-  // Fondo y Escena
-  usarImagenFondo: true,
-  imagenFondoPath: "./FONDOPLAYERA.png",
-  colorFondo: "#101010",
-  colorFondo2: "#2e4366",
-  logoPasaHorizontalX: -0.65,
-  logoPasaHorizontalY: 0.6,
-  logoPasaHorizontalEscala: 0.5,
-  logoPasaVerticalX: 0,
-  logoPasaVerticalY: 0.8,
-  logoPasaVerticalEscala: 1,
-  // HDRI y Material
-  usarHDRI: true,
-  intensidadHDRI: 0.35,
-  exposure: 0.25,
-  roughness: 0.8,
-  metalness: 0.4,
-  outlineActivo: false,
-  outlineColor: "#ffffff",
-  outlineGrosor: 0.005,
-  outlineIrregularidad: 9,
-  outlineEscalaRuido: 0.5,
-  outlineUmbralSilueta: 0,
-  outlineSuavidadSilueta: 0.01,
-  outlineReducirAbajo: 1,
-  outlineSuavidadAbajo: 0.01,
-  siluetaExteriorActiva: true,
-  siluetaExteriorColor: "#ffffff",
-  siluetaExteriorGrosor: 8,
-  siluetaExteriorOpacidad: 0.8,
-  siluetaExteriorIrregularidad: 0,
-  // CoreografÃ­a de video
-  videoDuracionMs: 5000,
-  videoModeloProporcionPantalla: 0,
-  videoGiroInicioMs: 200,
-  videoGiroDuracionMs: 2200,
-  videoGiroGrados: 360,
-  videoGiroEje: "y",
-  videoOverlayInicioMs: 1200,
-  videoOverlayFadeMs: 500,
-  videoLogoX: 0,
-  videoLogoY: 0.65,
-  videoLogoEscalaInicio: 0.25,
-  videoLogoEscalaFinal: 0.6,
-  videoLogoEscalaFinalVertical: 2,
-  videoHashtag: " #PASAELBALÓN ",
-  videoHashtagX: 0,
-  videoHashtagY: -0.7,
-  videoHashtagEscala: 0.5,
-  videoHashtagEscalaVertical: 1,
-  videoDesactivarHDRI: false,
-  videoReflectoresActivos: false,
-  videoReflectoresInicioMs: 200,
-  videoReflectoresFadeMs: 700,
-  videoReflectorIntensidad: 9,
-  videoReflectorColor: "#fff4dd",
-  // Acciones
-  grabarVideo: () => prepararGrabacion("horizontal"),
-  previsualizarCoreografia: () => previsualizarCoreografiaVideo(),
-  descargarImagen: () => descargarCaptura(),
-};
-
-// --- 3. CANVAS DE TEXTURA Y PREVISUALIZACIÓN ---
+// Canvas de textura
 const textCanvas = document.createElement("canvas");
 const ctx = textCanvas.getContext("2d");
 textCanvas.width = 2048;
 textCanvas.height = 2048;
 
-// Previsualización Inferior Izquierda
 textCanvas.style.cssText = `
     position: absolute; bottom: 20px; left: 20px;
     width: 256px; height: 256px; display:none;
@@ -306,7 +62,7 @@ async function cargarSVGColoreado(path, fillColor) {
   const elements = doc.querySelectorAll("*");
 
   elements.forEach((el) => {
-    // Solo afectar shapes reales (evita romper defs, gradients, etc.)
+    // Evita tocar defs, gradients y otros nodos no dibujables del SVG.
     const tag = el.tagName.toLowerCase();
 
     const drawableTags = [
@@ -351,7 +107,7 @@ function cargarImagenAsync(path) {
       return;
     }
     const img = new Image();
-    img.crossOrigin = "anonymous"; // Evita problemas de permisos al descargar
+    img.crossOrigin = "anonymous";
     img.onload = () => {
       imageCache[path] = img;
       resolve(img);
@@ -392,25 +148,21 @@ async function actualizarTextura() {
 
   try {
     await document.fonts.load(`10px "Anton"`);
-    // Si prefieres intentar con Impact (solo si la tienes local):
-    // await document.fonts.load(`10px "Impact"`);
   } catch (e) {
     console.warn(
       "La fuente tardó mucho o no cargó, usando fuente de respaldo.",
     );
   }
 
-  // 1. LIMPIEZA Y FONDO BASE
+  // Fondo base de la textura.
   ctx.clearRect(0, 0, 2048, 2048);
   ctx.fillStyle = settings.colorBloqueA;
   ctx.fillRect(0, 0, 2048, 2048);
 
-  const fuenteFinal = "Anton"; // O settings.fuente si ya lo actualizaste
+  const fuenteFinal = "Anton";
   ctx.font = `${settings.negrita ? "700" : "500"} ${settings.tamanioNombre}px "${fuenteFinal}"`;
 
-  //console.log(ctx.font);
-
-  // 2. DIBUJAR BLOQUES
+  // Bloques de color de la playera.
   if (settings.mostrarBloques) {
     ctx.fillStyle = settings.colorBloqueB;
     ctx.fillRect(0, 0, 2048, 260);
@@ -418,7 +170,7 @@ async function actualizarTextura() {
   }
 
   try {
-    // 3. CARGAR Y DIBUJAR SVG PATTERN
+    // Pattern SVG recoloreado.
     const imgBase = await cargarSVGColoreado(
       settings.texturaBase,
       settings.colorBloqueC,
@@ -426,7 +178,7 @@ async function actualizarTextura() {
     if (currentVersion !== textureVersion) return;
     ctx.drawImage(imgBase, 0, 0, 2048, 2048);
 
-    // 4. CARGAR Y DIBUJAR LOGOS
+    // Logo asociado al pattern activo.
     if (settings.mostrarLogos) {
       const logoActivo = obtenerLogoActivo();
       if (logoActivo >= 1) {
@@ -446,7 +198,7 @@ async function actualizarTextura() {
       }
     }
 
-    // 5. DIBUJAR TEXTOS (NOMBRE Y NÚMERO)
+    // Textos aplicados a espalda, pecho y manga segun el modo activo.
     const gruposPivote = {
       espalda: ["Espalda"],
       espalda_manga: ["Espalda", "Manga Der"],
@@ -457,7 +209,6 @@ async function actualizarTextura() {
     const pivotesActivos = gruposPivote[settings.modoPivotes] || ["Espalda"];
     const peso = settings.negrita ? "700" : "500";
 
-    // Definición interna de la función de dibujo de texto
     const ejecutarDibujoTexto = (x, y, escala, incluirNombre) => {
       ctx.save();
       ctx.translate(x, y);
@@ -487,7 +238,6 @@ async function actualizarTextura() {
       ctx.restore();
     };
 
-    // Aplicar el dibujo en cada pivote activo
     for (const nombrePivote of pivotesActivos) {
       if (nombrePivote === "Espalda") {
         ejecutarDibujoTexto(
@@ -513,7 +263,7 @@ async function actualizarTextura() {
       }
     }
 
-    // 6. ACTUALIZAR THREE.JS Y FINALIZAR
+    // La textura se actualiza al final para evitar renders intermedios.
     textTexture.needsUpdate = true;
     marcarRecursoInicialListo("textura");
     return true;
@@ -523,7 +273,7 @@ async function actualizarTextura() {
   }
 }
 
-// --- 4. ESCENA 3D Y RENDERER ---
+// Escena 3D y renderer
 const appContainer = document.getElementById("app");
 const loaderElement = document.getElementById("canvas-loader");
 const loaderLottieElement = document.getElementById("loader-lottie");
@@ -723,7 +473,7 @@ function actualizarRenderTargets() {
 
 actualizarRenderTargets();
 
-// Fondo para Imagen
+// Fondo
 const bgScene = new THREE.Scene();
 const bgCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 const bgMesh = new THREE.Mesh(
@@ -782,7 +532,7 @@ function actualizarFondo() {
   }
 }
 
-// --- LOGO SOBRE FONDO (overlay en bgScene) ---
+// Overlays del fondo
 
 const logoTextureLoader = new THREE.TextureLoader();
 
@@ -794,7 +544,6 @@ const logoMaterial = new THREE.MeshBasicMaterial({
 });
 
 let logoMesh;
-// Limpiar logo anterior si existe
 const oldLogo = scene.getObjectByName("logoUnico");
 if (oldLogo) scene.remove(oldLogo);
 
@@ -802,8 +551,7 @@ logoMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), logoMaterial);
 logoMesh.name = "logoUnico";
 scene.add(logoMesh);
 
-// Posición en pantalla (coordenadas ortográficas -1 a 1)
-logoMesh.position.set(-0.65, 0.6, 0); // esquina inferior derecha
+logoMesh.position.set(-0.65, 0.6, 0);
 
 function actualizarLogoPasaElBalon() {
   if (!logoMesh || !logoMaterial.map || !logoMaterial.map.image) return;
@@ -811,16 +559,13 @@ function actualizarLogoPasaElBalon() {
   const esVertical = camera.aspect < 1;
   const prefijo = esVertical ? "logoPasaVertical" : "logoPasaHorizontal";
 
-  // 1. Corregimos para que lea el slider correcto según el modo
   const ancho = settings[`${prefijo}Escala`];
 
   const textura = logoMaterial.map;
   const aspectImagen = textura.image.height / textura.image.width;
 
-  // 2. Posicionamos (esto ya lo tenías bien)
   logoMesh.position.set(settings[`${prefijo}X`], settings[`${prefijo}Y`], 0);
 
-  // 3. Corregimos la matemática de la escala
   const aspectCanvas = tamanoCanvas.width / tamanoCanvas.height;
   logoMesh.scale.set(ancho, ancho * aspectImagen * aspectCanvas, 1);
 }
@@ -833,17 +578,14 @@ function crearTexturaHashtag(texto) {
   const canvas = document.createElement("canvas");
   const tempCtx = canvas.getContext("2d");
 
-  // 1. Definimos el estilo de fuente primero para medir
   const fontSize = 150;
   tempCtx.font = `900 ${fontSize}px "Sharp Grotesk", Impact, Arial, sans-serif`;
 
-  // 2. Medimos cuánto mide el texto realmente
   const metrica = tempCtx.measureText(texto);
-  const padding = 40; // Espacio extra para que no roce los bordes
+  const padding = 40;
 
-  // 3. Ajustamos el tamaño del canvas al texto real
   canvas.width = metrica.width + padding;
-  canvas.height = fontSize * 1.4; // Altura proporcional a la fuente
+  canvas.height = fontSize * 1.4;
 
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -851,10 +593,9 @@ function crearTexturaHashtag(texto) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
-  // Re-aplicamos la fuente porque al cambiar el width/height del canvas se resetea
+  // El canvas reinicia su contexto al cambiar width/height.
   ctx.font = `900 ${fontSize}px "Sharp Grotesk", Impact, Arial, sans-serif`;
 
-  // Dibujamos justo en el centro del nuevo tamaño
   ctx.fillText(texto, canvas.width / 2, canvas.height / 2);
 
   const textura = new THREE.CanvasTexture(canvas);
@@ -883,11 +624,8 @@ function actualizarHashtagVideo() {
 
   const aspectImagen = textura.image.width / textura.image.height;
 
-  // 1. Determinamos si estamos en modo vertical u horizontal
-  // Si el aspect es menor a 1, significa que el alto es mayor que el ancho (Vertical)
   const esVertical = camera.aspect < 1;
 
-  // 2. Seleccionamos la escala basada en la orientación
   const escalaBase = esVertical
     ? settings.videoHashtagEscalaVertical
     : settings.videoHashtagEscala;
@@ -896,7 +634,6 @@ function actualizarHashtagVideo() {
 
   const factorAjuste = 0.1;
 
-  // 3. Aplicamos la escala seleccionada
   hashtagMesh.scale.set(
     escalaBase * aspectImagen * factorAjuste,
     escalaBase * factorAjuste,
@@ -906,7 +643,7 @@ function actualizarHashtagVideo() {
 
 actualizarHashtagVideo();
 
-// Cargar textura
+// Textura del logo principal.
 logoTextureLoader.load(
   "./LogoPasaElBalon.png",
   (tex) => {
@@ -920,7 +657,7 @@ logoTextureLoader.load(
   () => marcarRecursoInicialListo("logoPasaElBalon"),
 );
 
-// --- 5. LUCES, MODELO Y MATERIALES ---
+// Luces, modelo y materiales
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.enablePan = false;
@@ -1705,18 +1442,15 @@ new HDRLoader().load(
 const gltfLoader = new GLTFLoader();
 cargarModeloTorso(settings.modeloTorso, true);
 
-// --- 6. GUI (TODOS LOS MENÚS RESTAURADOS) ---
+// Panel de configuracion
 
 settings.descargarSoloTextura = async function () {
   try {
-    // Forzamos el redibujado completo y esperamos a que termine (SVG + Logo + Texto)
     await actualizarTextura();
 
-    // Creamos el enlace de descarga
     const link = document.createElement("a");
     link.download = `textura-${settings.nombre || "jersey"}.png`;
 
-    // Usamos toDataURL para obtener la imagen del canvas de la textura
     link.href = textCanvas.toDataURL("image/png");
 
     link.click();
@@ -1725,310 +1459,316 @@ settings.descargarSoloTextura = async function () {
   }
 };
 
-const gui = new GUI();
-gui.hide();
+let gui;
+let modeloTorsoGui;
+let numeroGui;
 
-// Carpeta 1: Colores y Prenda
-const fPrenda = gui.addFolder("Configuración de Prenda");
-const modeloTorsoGui = fPrenda
-  .add(settings, "modeloTorso", modelosTorsoDisponibles)
-  .name("Modelo")
-  .onChange(cargarModeloTorso);
-fPrenda
-  .add(settings, "texturaBase", texturasDisponibles)
-  .name("Textura Base")
-  .onChange(actualizarTextura);
-fPrenda
-  .add(
-    settings,
-    "paletaColor",
-    paletasDisponibles.reduce((acc, paleta) => {
-      acc[paleta.nombre] = paleta.id;
-      return acc;
-    }, {}),
-  )
-  .name("Paleta")
-  .onChange((value) => {
-    aplicarPaleta(value);
-    syncHtmlPaleta();
+function configurarGUI() {
+  gui = new GUI();
+  gui.hide();
+
+  // Prenda
+  const fPrenda = gui.addFolder("Configuración de Prenda");
+  modeloTorsoGui = fPrenda
+    .add(settings, "modeloTorso", modelosTorsoDisponibles)
+    .name("Modelo")
+    .onChange(cargarModeloTorso);
+  fPrenda
+    .add(settings, "texturaBase", texturasDisponibles)
+    .name("Textura Base")
+    .onChange(actualizarTextura);
+  fPrenda
+    .add(
+      settings,
+      "paletaColor",
+      paletasDisponibles.reduce((acc, paleta) => {
+        acc[paleta.nombre] = paleta.id;
+        return acc;
+      }, {}),
+    )
+    .name("Paleta")
+    .onChange((value) => {
+      aplicarPaleta(value);
+      syncHtmlPaleta();
+      actualizarTextura();
+    });
+  fPrenda
+    .addColor(settings, "colorBloqueA")
+    .name("Color Principal")
+    .onChange(actualizarTextura);
+  fPrenda
+    .addColor(settings, "colorBloqueB")
+    .name("Color Bloques")
+    .onChange(actualizarTextura);
+  fPrenda
+    .addColor(settings, "colorBloqueC")
+    .name("Color 3")
+    .onChange((value) => {
+      settings.colorTexto = value;
+      actualizarTextura();
+    });
+  fPrenda
+    .add(settings, "mostrarBloques")
+    .name("Activar Bloques")
+    .onChange(actualizarTextura);
+
+  // Logos del pattern
+  const fLogos = gui.addFolder("Control de Logos (5)");
+  fLogos
+    .add(settings, "mostrarLogos")
+    .name("Ver logo del pattern")
+    .onChange(actualizarTextura);
+  for (let i = 1; i <= 5; i++) {
+    const s = fLogos.addFolder(`Logo ${i}`);
+    s.add(settings, `logo${i}_x`, 0, 2048).name("X").onChange(actualizarTextura);
+    s.add(settings, `logo${i}_y`, 0, 2048).name("Y").onChange(actualizarTextura);
+    s.add(settings, `logo${i}_esc`, 0.01, 10)
+      .name("Escala")
+      .onChange(actualizarTextura);
+    s.add(settings, `logo${i}_rot`, 0, 360, 1)
+      .name("Rotaci\u00f3n")
+      .onChange(actualizarTextura);
+    s.close();
+  }
+
+  // Texto y pivotes
+  const fTexto = gui.addFolder("Personalización Texto");
+  fTexto.add(settings, "nombre").onChange(actualizarTextura);
+  numeroGui = fTexto.add(settings, "numero").onChange((value) => {
+    settings.numero = limitarNumero(value);
+    numeroGui.updateDisplay();
+    if (htmlControls.numero) htmlControls.numero.value = settings.numero;
     actualizarTextura();
   });
-fPrenda
-  .addColor(settings, "colorBloqueA")
-  .name("Color Principal")
-  .onChange(actualizarTextura);
-fPrenda
-  .addColor(settings, "colorBloqueB")
-  .name("Color Bloques")
-  .onChange(actualizarTextura);
-fPrenda
-  .addColor(settings, "colorBloqueC")
-  .name("Color 3")
-  .onChange((value) => {
-    settings.colorTexto = value;
-    actualizarTextura();
-  });
-fPrenda
-  .add(settings, "mostrarBloques")
-  .name("Activar Bloques")
-  .onChange(actualizarTextura);
+  fTexto
+    .add(settings, "posicionPredefinida", Object.keys(pivotes))
+    .name("Pivote")
+    .onChange((v) => {
+      settings.posX = pivotes[v].x;
+      settings.posY = pivotes[v].y;
+      actualizarTextura();
+      gui.controllers.forEach((c) => c.updateDisplay());
+    });
+  fTexto.add(settings, "posX", 0, 2048).onChange(actualizarTextura);
+  fTexto.add(settings, "posY", 0, 2048).onChange(actualizarTextura);
 
-// Carpeta 2: Logos (Tope Escala 10)
-const fLogos = gui.addFolder("Control de Logos (5)");
-fLogos
-  .add(settings, "mostrarLogos")
-  .name("Ver logo del pattern")
-  .onChange(actualizarTextura);
-for (let i = 1; i <= 5; i++) {
-  const s = fLogos.addFolder(`Logo ${i}`);
-  s.add(settings, `logo${i}_x`, 0, 2048).name("X").onChange(actualizarTextura);
-  s.add(settings, `logo${i}_y`, 0, 2048).name("Y").onChange(actualizarTextura);
-  s.add(settings, `logo${i}_esc`, 0.01, 10)
+  const fFrente = gui.addFolder("Frente NÃºmero");
+  fFrente.add(settings, "pechoX", 0, 2048).name("X").onChange(actualizarTextura);
+  fFrente.add(settings, "pechoY", 0, 2048).name("Y").onChange(actualizarTextura);
+  fFrente
+    .add(settings, "pechoEscala", 0.1, 5)
     .name("Escala")
     .onChange(actualizarTextura);
-  s.add(settings, `logo${i}_rot`, 0, 360, 1)
-    .name("Rotaci\u00f3n")
+
+  const fMangaDer = gui.addFolder("Manga Der NÃºmero");
+  fMangaDer
+    .add(settings, "mangaDerX", 0, 2048)
+    .name("X")
     .onChange(actualizarTextura);
-  s.close();
+  fMangaDer
+    .add(settings, "mangaDerY", 0, 2048)
+    .name("Y")
+    .onChange(actualizarTextura);
+  fMangaDer
+    .add(settings, "mangaDerEscala", 0.1, 5)
+    .name("Escala")
+    .onChange(actualizarTextura);
+
+  // Material y HDRI
+  const fMat = gui.addFolder("Física del Material / HDRI");
+  fMat
+    .add(settings, "roughness", 0, 1)
+    .name("Rugosidad")
+    .onChange(actualizarMateriales);
+  fMat
+    .add(settings, "metalness", 0, 1)
+    .name("Metalicidad")
+    .onChange(actualizarMateriales);
+  fMat
+    .add(settings, "usarHDRI")
+    .name("Activar HDRI")
+    .onChange((v) => {
+      scene.environment = v ? hdriEnvMap : null;
+      actualizarMateriales();
+    });
+  fMat
+    .add(settings, "intensidadHDRI", 0, 2)
+    .name("Brillo HDRI")
+    .onChange(actualizarMateriales);
+
+  // Escena e iluminacion
+  const fOutline = gui.addFolder("Contorno Toon");
+  fOutline
+    .add(settings, "outlineActivo")
+    .name("Activar Contorno")
+    .onChange(actualizarOutline);
+  fOutline
+    .addColor(settings, "outlineColor")
+    .name("Color Contorno")
+    .onChange(actualizarOutline);
+  fOutline
+    .add(settings, "outlineGrosor", 0.001, 0.08)
+    .name("Grosor")
+    .onChange(actualizarOutline);
+  fOutline
+    .add(settings, "outlineIrregularidad", 0, 20)
+    .name("Irregularidad")
+    .onChange(actualizarOutline);
+  fOutline
+    .add(settings, "outlineEscalaRuido", 0.1, 20)
+    .name("Escala Patrón")
+    .onChange(actualizarOutline);
+  fOutline
+    .add(settings, "outlineUmbralSilueta", 0, 0.8)
+    .name("Limpieza Interna")
+    .onChange(actualizarOutline);
+  fOutline
+    .add(settings, "outlineSuavidadSilueta", 0.01, 0.5)
+    .name("Suavidad Borde")
+    .onChange(actualizarOutline);
+  fOutline
+    .add(settings, "outlineReducirAbajo", 0, 1)
+    .name("Limpieza Axila")
+    .onChange(actualizarOutline);
+  fOutline
+    .add(settings, "outlineSuavidadAbajo", 0.01, 0.5)
+    .name("Suavidad Axila")
+    .onChange(actualizarOutline);
+
+  const fSiluetaExterior = gui.addFolder("Silueta Exterior");
+  fSiluetaExterior
+    .add(settings, "siluetaExteriorActiva")
+    .name("Activar Silueta")
+    .onChange(actualizarSiluetaExterior);
+  fSiluetaExterior
+    .addColor(settings, "siluetaExteriorColor")
+    .name("Color")
+    .onChange(actualizarSiluetaExterior);
+  fSiluetaExterior
+    .add(settings, "siluetaExteriorGrosor", 0.5, 12, 0.1)
+    .name("Grosor px")
+    .onChange(actualizarSiluetaExterior);
+  fSiluetaExterior
+    .add(settings, "siluetaExteriorOpacidad", 0, 1, 0.01)
+    .name("Opacidad")
+    .onChange(actualizarSiluetaExterior);
+  fSiluetaExterior
+    .add(settings, "siluetaExteriorIrregularidad", 0, 4, 0.01)
+    .name("Irregularidad")
+    .onChange(actualizarSiluetaExterior);
+
+  const fEscena = gui.addFolder("Iluminación y Fondo");
+  fEscena
+    .add(settings, "exposure", 0, 2)
+    .name("Exposición")
+    .onChange((v) => (renderer.toneMappingExposure = v));
+  fEscena
+    .add(settings, "usarImagenFondo")
+    .name("Imagen FONDOPLAYERA")
+    .onChange(actualizarFondo);
+  const fLogoPasa = fEscena.addFolder("Logo PasaElBalon");
+  fLogoPasa
+    .add(settings, "logoPasaHorizontalX", -1, 1, 0.01)
+    .name("Horizontal X")
+    .onChange(actualizarLogoPasaElBalon);
+  fLogoPasa
+    .add(settings, "logoPasaHorizontalY", -1, 1, 0.01)
+    .name("Horizontal Y")
+    .onChange(actualizarLogoPasaElBalon);
+  fLogoPasa
+    .add(settings, "logoPasaHorizontalEscala", 0.05, 1.4, 0.01)
+    .name("Horizontal Escala")
+    .onChange(actualizarLogoPasaElBalon);
+  fLogoPasa
+    .add(settings, "logoPasaVerticalX", -1, 1, 0.01)
+    .name("Vertical X")
+    .onChange(actualizarLogoPasaElBalon);
+  fLogoPasa
+    .add(settings, "logoPasaVerticalY", -1, 1, 0.01)
+    .name("Vertical Y")
+    .onChange(actualizarLogoPasaElBalon);
+  fLogoPasa
+    .add(settings, "logoPasaVerticalEscala", 0.05, 4, 0.01)
+    .name("Vertical Escala")
+    .onChange(actualizarLogoPasaElBalon);
+  fLogoPasa.close();
+  fEscena
+    .addColor(settings, "colorFondo")
+    .name("Color de Fondo")
+    .onChange(actualizarFondo);
+  fEscena
+    .add(settings, "intensidadLuzPrincipal", 0, 20)
+    .name("Luz Focal")
+    .onChange(actualizarLuces);
+
+  const fCoreografiaVideo = gui.addFolder("Coreografía Video");
+  fCoreografiaVideo
+    .add(settings, "videoDuracionMs", 1000, 10000, 100)
+    .name("Duración ms");
+  fCoreografiaVideo
+    .add(settings, "videoModeloProporcionPantalla", 0, 1.2, 0.01)
+    .name("Modelo pantalla (0=original)");
+  fCoreografiaVideo
+    .add(settings, "videoGiroInicioMs", 0, 3000, 50)
+    .name("Inicio giro ms");
+  fCoreografiaVideo
+    .add(settings, "videoGiroDuracionMs", 200, 5000, 50)
+    .name("Duración giro ms");
+  fCoreografiaVideo
+    .add(settings, "videoGiroGrados", -720, 720, 1)
+    .name("Grados giro");
+  fCoreografiaVideo
+    .add(settings, "videoGiroEje", ["x", "y", "z"])
+    .name("Eje giro");
+  fCoreografiaVideo
+    .add(settings, "videoOverlayInicioMs", 0, 5000, 50)
+    .name("Inicio logo/texto");
+  fCoreografiaVideo
+    .add(settings, "videoOverlayFadeMs", 0, 2000, 50)
+    .name("Fade logo/texto");
+  fCoreografiaVideo.add(settings, "videoLogoX", -1, 1, 0.01).name("Logo X");
+  fCoreografiaVideo.add(settings, "videoLogoY", -1, 1, 0.01).name("Logo Y");
+  fCoreografiaVideo
+    .add(settings, "videoLogoEscalaInicio", 0.05, 1.2, 0.01)
+    .name("Logo escala inicio");
+  fCoreografiaVideo
+    .add(settings, "videoLogoEscalaFinal", 0.05, 1.2, 0.01)
+    .name("Logo escala final");
+  fCoreografiaVideo
+    .add(settings, "videoLogoEscalaFinalVertical", 1, 4, 0.05)
+    .name("Multiplicador logo vertical");
+  fCoreografiaVideo.add(settings, "videoHashtag").name("Hashtag");
+  fCoreografiaVideo.add(settings, "videoHashtagX", -1, 1, 0.01).name("Hashtag X");
+  fCoreografiaVideo.add(settings, "videoHashtagY", -1, 1, 0.01).name("Hashtag Y");
+  fCoreografiaVideo
+    .add(settings, "videoHashtagEscala", 0.01, 1, 0.01)
+    .name("Hashtag escala");
+  fCoreografiaVideo
+    .add(settings, "videoDesactivarHDRI")
+    .name("Apagar HDRI en video");
+  fCoreografiaVideo.add(settings, "videoReflectoresActivos").name("Reflectores");
+  fCoreografiaVideo
+    .add(settings, "videoReflectoresInicioMs", 0, 5000, 50)
+    .name("Inicio reflectores");
+  fCoreografiaVideo
+    .add(settings, "videoReflectoresFadeMs", 0, 2000, 50)
+    .name("Fade reflectores");
+  fCoreografiaVideo
+    .add(settings, "videoReflectorIntensidad", 0, 12, 0.1)
+    .name("Intensidad reflectores");
+  fCoreografiaVideo
+    .addColor(settings, "videoReflectorColor")
+    .name("Color reflectores");
+  fCoreografiaVideo
+    .add(settings, "previsualizarCoreografia")
+    .name("▶ Previsualizar");
+  fCoreografiaVideo.close();
+
+  // Acciones
+  gui.add(settings, "descargarImagen").name("📸 Capturar PNG");
+  gui.add(settings, "grabarVideo").name("🎬 Grabar Story");
+  gui.add(settings, "descargarSoloTextura").name("📥 Descargar Textura (Plana)");
 }
-
-// Carpeta 3: Texto y Pivotes
-const fTexto = gui.addFolder("Personalización Texto");
-fTexto.add(settings, "nombre").onChange(actualizarTextura);
-const numeroGui = fTexto.add(settings, "numero").onChange((value) => {
-  settings.numero = limitarNumero(value);
-  numeroGui.updateDisplay();
-  if (htmlControls.numero) htmlControls.numero.value = settings.numero;
-  actualizarTextura();
-});
-fTexto
-  .add(settings, "posicionPredefinida", Object.keys(pivotes))
-  .name("Pivote")
-  .onChange((v) => {
-    settings.posX = pivotes[v].x;
-    settings.posY = pivotes[v].y;
-    actualizarTextura();
-    gui.controllers.forEach((c) => c.updateDisplay());
-  });
-fTexto.add(settings, "posX", 0, 2048).onChange(actualizarTextura);
-fTexto.add(settings, "posY", 0, 2048).onChange(actualizarTextura);
-
-const fFrente = gui.addFolder("Frente NÃºmero");
-fFrente.add(settings, "pechoX", 0, 2048).name("X").onChange(actualizarTextura);
-fFrente.add(settings, "pechoY", 0, 2048).name("Y").onChange(actualizarTextura);
-fFrente
-  .add(settings, "pechoEscala", 0.1, 5)
-  .name("Escala")
-  .onChange(actualizarTextura);
-
-const fMangaDer = gui.addFolder("Manga Der NÃºmero");
-fMangaDer
-  .add(settings, "mangaDerX", 0, 2048)
-  .name("X")
-  .onChange(actualizarTextura);
-fMangaDer
-  .add(settings, "mangaDerY", 0, 2048)
-  .name("Y")
-  .onChange(actualizarTextura);
-fMangaDer
-  .add(settings, "mangaDerEscala", 0.1, 5)
-  .name("Escala")
-  .onChange(actualizarTextura);
-
-// Carpeta 4: Material y HDRI
-const fMat = gui.addFolder("Física del Material / HDRI");
-fMat
-  .add(settings, "roughness", 0, 1)
-  .name("Rugosidad")
-  .onChange(actualizarMateriales);
-fMat
-  .add(settings, "metalness", 0, 1)
-  .name("Metalicidad")
-  .onChange(actualizarMateriales);
-fMat
-  .add(settings, "usarHDRI")
-  .name("Activar HDRI")
-  .onChange((v) => {
-    scene.environment = v ? hdriEnvMap : null;
-    actualizarMateriales();
-  });
-fMat
-  .add(settings, "intensidadHDRI", 0, 2)
-  .name("Brillo HDRI")
-  .onChange(actualizarMateriales);
-
-// Carpeta 5: Escena e Iluminación
-const fOutline = gui.addFolder("Contorno Toon");
-fOutline
-  .add(settings, "outlineActivo")
-  .name("Activar Contorno")
-  .onChange(actualizarOutline);
-fOutline
-  .addColor(settings, "outlineColor")
-  .name("Color Contorno")
-  .onChange(actualizarOutline);
-fOutline
-  .add(settings, "outlineGrosor", 0.001, 0.08)
-  .name("Grosor")
-  .onChange(actualizarOutline);
-fOutline
-  .add(settings, "outlineIrregularidad", 0, 20)
-  .name("Irregularidad")
-  .onChange(actualizarOutline);
-fOutline
-  .add(settings, "outlineEscalaRuido", 0.1, 20)
-  .name("Escala Patrón")
-  .onChange(actualizarOutline);
-fOutline
-  .add(settings, "outlineUmbralSilueta", 0, 0.8)
-  .name("Limpieza Interna")
-  .onChange(actualizarOutline);
-fOutline
-  .add(settings, "outlineSuavidadSilueta", 0.01, 0.5)
-  .name("Suavidad Borde")
-  .onChange(actualizarOutline);
-fOutline
-  .add(settings, "outlineReducirAbajo", 0, 1)
-  .name("Limpieza Axila")
-  .onChange(actualizarOutline);
-fOutline
-  .add(settings, "outlineSuavidadAbajo", 0.01, 0.5)
-  .name("Suavidad Axila")
-  .onChange(actualizarOutline);
-
-const fSiluetaExterior = gui.addFolder("Silueta Exterior");
-fSiluetaExterior
-  .add(settings, "siluetaExteriorActiva")
-  .name("Activar Silueta")
-  .onChange(actualizarSiluetaExterior);
-fSiluetaExterior
-  .addColor(settings, "siluetaExteriorColor")
-  .name("Color")
-  .onChange(actualizarSiluetaExterior);
-fSiluetaExterior
-  .add(settings, "siluetaExteriorGrosor", 0.5, 12, 0.1)
-  .name("Grosor px")
-  .onChange(actualizarSiluetaExterior);
-fSiluetaExterior
-  .add(settings, "siluetaExteriorOpacidad", 0, 1, 0.01)
-  .name("Opacidad")
-  .onChange(actualizarSiluetaExterior);
-fSiluetaExterior
-  .add(settings, "siluetaExteriorIrregularidad", 0, 4, 0.01)
-  .name("Irregularidad")
-  .onChange(actualizarSiluetaExterior);
-
-const fEscena = gui.addFolder("Iluminación y Fondo");
-fEscena
-  .add(settings, "exposure", 0, 2)
-  .name("Exposición")
-  .onChange((v) => (renderer.toneMappingExposure = v));
-fEscena
-  .add(settings, "usarImagenFondo")
-  .name("Imagen FONDOPLAYERA")
-  .onChange(actualizarFondo);
-const fLogoPasa = fEscena.addFolder("Logo PasaElBalon");
-fLogoPasa
-  .add(settings, "logoPasaHorizontalX", -1, 1, 0.01)
-  .name("Horizontal X")
-  .onChange(actualizarLogoPasaElBalon);
-fLogoPasa
-  .add(settings, "logoPasaHorizontalY", -1, 1, 0.01)
-  .name("Horizontal Y")
-  .onChange(actualizarLogoPasaElBalon);
-fLogoPasa
-  .add(settings, "logoPasaHorizontalEscala", 0.05, 1.4, 0.01)
-  .name("Horizontal Escala")
-  .onChange(actualizarLogoPasaElBalon);
-fLogoPasa
-  .add(settings, "logoPasaVerticalX", -1, 1, 0.01)
-  .name("Vertical X")
-  .onChange(actualizarLogoPasaElBalon);
-fLogoPasa
-  .add(settings, "logoPasaVerticalY", -1, 1, 0.01)
-  .name("Vertical Y")
-  .onChange(actualizarLogoPasaElBalon);
-fLogoPasa
-  .add(settings, "logoPasaVerticalEscala", 0.05, 4, 0.01)
-  .name("Vertical Escala")
-  .onChange(actualizarLogoPasaElBalon);
-fLogoPasa.close();
-fEscena
-  .addColor(settings, "colorFondo")
-  .name("Color de Fondo")
-  .onChange(actualizarFondo);
-fEscena
-  .add(settings, "intensidadLuzPrincipal", 0, 20)
-  .name("Luz Focal")
-  .onChange(actualizarLuces);
-
-const fCoreografiaVideo = gui.addFolder("Coreografía Video");
-fCoreografiaVideo
-  .add(settings, "videoDuracionMs", 1000, 10000, 100)
-  .name("Duración ms");
-fCoreografiaVideo
-  .add(settings, "videoModeloProporcionPantalla", 0, 1.2, 0.01)
-  .name("Modelo pantalla (0=original)");
-fCoreografiaVideo
-  .add(settings, "videoGiroInicioMs", 0, 3000, 50)
-  .name("Inicio giro ms");
-fCoreografiaVideo
-  .add(settings, "videoGiroDuracionMs", 200, 5000, 50)
-  .name("Duración giro ms");
-fCoreografiaVideo
-  .add(settings, "videoGiroGrados", -720, 720, 1)
-  .name("Grados giro");
-fCoreografiaVideo
-  .add(settings, "videoGiroEje", ["x", "y", "z"])
-  .name("Eje giro");
-fCoreografiaVideo
-  .add(settings, "videoOverlayInicioMs", 0, 5000, 50)
-  .name("Inicio logo/texto");
-fCoreografiaVideo
-  .add(settings, "videoOverlayFadeMs", 0, 2000, 50)
-  .name("Fade logo/texto");
-fCoreografiaVideo.add(settings, "videoLogoX", -1, 1, 0.01).name("Logo X");
-fCoreografiaVideo.add(settings, "videoLogoY", -1, 1, 0.01).name("Logo Y");
-fCoreografiaVideo
-  .add(settings, "videoLogoEscalaInicio", 0.05, 1.2, 0.01)
-  .name("Logo escala inicio");
-fCoreografiaVideo
-  .add(settings, "videoLogoEscalaFinal", 0.05, 1.2, 0.01)
-  .name("Logo escala final");
-fCoreografiaVideo
-  .add(settings, "videoLogoEscalaFinalVertical", 1, 4, 0.05)
-  .name("Multiplicador logo vertical");
-fCoreografiaVideo.add(settings, "videoHashtag").name("Hashtag");
-fCoreografiaVideo.add(settings, "videoHashtagX", -1, 1, 0.01).name("Hashtag X");
-fCoreografiaVideo.add(settings, "videoHashtagY", -1, 1, 0.01).name("Hashtag Y");
-fCoreografiaVideo
-  .add(settings, "videoHashtagEscala", 0.01, 1, 0.01)
-  .name("Hashtag escala");
-fCoreografiaVideo
-  .add(settings, "videoDesactivarHDRI")
-  .name("Apagar HDRI en video");
-fCoreografiaVideo.add(settings, "videoReflectoresActivos").name("Reflectores");
-fCoreografiaVideo
-  .add(settings, "videoReflectoresInicioMs", 0, 5000, 50)
-  .name("Inicio reflectores");
-fCoreografiaVideo
-  .add(settings, "videoReflectoresFadeMs", 0, 2000, 50)
-  .name("Fade reflectores");
-fCoreografiaVideo
-  .add(settings, "videoReflectorIntensidad", 0, 12, 0.1)
-  .name("Intensidad reflectores");
-fCoreografiaVideo
-  .addColor(settings, "videoReflectorColor")
-  .name("Color reflectores");
-fCoreografiaVideo
-  .add(settings, "previsualizarCoreografia")
-  .name("▶ Previsualizar");
-fCoreografiaVideo.close();
-
-// Botones de Acción
-gui.add(settings, "descargarImagen").name("📸 Capturar PNG");
-gui.add(settings, "grabarVideo").name("🎬 Grabar Story");
-gui.add(settings, "descargarSoloTextura").name("📥 Descargar Textura (Plana)");
 
 const htmlControls = {
   nombre: document.getElementById("control-nombre"),
@@ -2158,7 +1898,7 @@ function syncHtmlPaleta() {
   });
 }
 
-// --- 7. LOOP ---
+// Loop y eventos
 function animate() {
   requestAnimationFrame(animate);
   actualizarCoreografiaGrabacion();
@@ -2170,7 +1910,7 @@ function redimensionarRenderer() {
   const rect = appContainer.getBoundingClientRect();
   camera.aspect = rect.width / rect.height;
 
-  // Esto garantiza que la "lupa" de la cámara no cambie
+  // Mantiene estable la perspectiva al cambiar de viewport.
   camera.fov = 55;
 
   camera.updateProjectionMatrix();
@@ -2184,21 +1924,12 @@ let resizeFrame = null;
 let resizeTimer = null;
 
 function prepararCamaraParaVideo() {
-  // 1. Forzamos la posición maestra (ajusta el 2.5 según la distancia que te guste)
   camera.position.set(0, 0, 2.5);
-
-  // 2. Forzamos el objetivo al centro del modelo
   controls.target.set(0, 0.1, 0);
-
-  // 3. Forzamos el FOV fijo para que la escala sea siempre la misma
   camera.fov = 70;
 
-  // 4. Actualizamos todo para que Three.js se entere del cambio
   camera.updateProjectionMatrix();
   controls.update();
-
-  // 5. Opcional: Si quieres que el usuario no arruine la toma mientras graba
-  // controls.enabled = false;
 }
 
 function programarRedimension() {
@@ -2230,14 +1961,15 @@ window.addEventListener("keydown", (event) => {
   if (event.key.toLowerCase() === "#") {
     if (gui._hidden) {
       gui.show();
-      textCanvas.style.display = "block"; // Muestra también el canvas si quieres
+      textCanvas.style.display = "block";
     } else {
       gui.hide();
-      textCanvas.style.display = "none"; // Esconde ambos
+      textCanvas.style.display = "none";
     }
   }
 });
 
+configurarGUI();
 bindHtmlControls();
 syncHtmlPaleta();
 actualizarTextura();
