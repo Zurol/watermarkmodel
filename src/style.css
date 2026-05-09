@@ -35,7 +35,8 @@
 /* Bold */
 @font-face {
   font-family: "Sharp Grotesk";
-  src: url("/watermarkmodel/fonts/SharpGrotesk-SemiBold25.woff2") format("woff2");
+  src: url("/watermarkmodel/fonts/SharpGrotesk-SemiBold25.woff2")
+    format("woff2");
   font-weight: 700; /* Bold */
   font-style: normal;
   font-display: swap;
@@ -165,7 +166,7 @@ body {
 #control-panel {
   position: fixed;
   top: 16px;
-  left: 16px;
+  right: 16px;
   z-index: 1200;
   width: min(340px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
