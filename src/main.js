@@ -222,7 +222,7 @@ const settings = {
   logoPasaHorizontalEscala: 0.5,
   logoPasaVerticalX: 0,
   logoPasaVerticalY: 0.8,
-  logoPasaVerticalEscala: 2,
+  logoPasaVerticalEscala: 1,
   // HDRI y Material
   usarHDRI: true,
   intensidadHDRI: 0.35,
