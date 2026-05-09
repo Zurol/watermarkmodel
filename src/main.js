@@ -139,7 +139,6 @@ const paletasDisponibles = [
   },
 ];
 
-const fuentesDisponibles = ["Anton", "Sharp Grotesk", "Arial", "Verdana"];
 const fuenteTextoPredeterminada = "Anton";
 const anchoMaximoNombreEspalda = 650;
 const maxCaracteresNumero = 2;
@@ -164,9 +163,6 @@ const settings = {
   pechoX: 750,
   pechoY: 1450,
   pechoEscala: 0.5,
-  mangaIzqX: pivotes["Manga Izq"].x,
-  mangaIzqY: pivotes["Manga Izq"].y,
-  mangaIzqEscala: 1,
   mangaDerX: 490,
   mangaDerY: 1930,
   mangaDerEscala: 0.4,
@@ -243,10 +239,6 @@ const settings = {
   siluetaExteriorGrosor: 8,
   siluetaExteriorOpacidad: 0.8,
   siluetaExteriorIrregularidad: 0,
-  emissiveIntensity: 0,
-  colorEmissive: "#000000",
-  mostrarPiso: true,
-  opacidadSombra: 0.3,
   // CoreografÃ­a de video
   videoDuracionMs: 5000,
   videoModeloProporcionPantalla: 0,
@@ -272,13 +264,10 @@ const settings = {
   videoReflectoresFadeMs: 700,
   videoReflectorIntensidad: 9,
   videoReflectorColor: "#fff4dd",
-  cameraVideoPos: { x: 0, y: 1.2, z: 3.5 }, // Coordenadas fijas para el video
-  cameraVideoLookAt: { x: 0, y: 1.0, z: 0 }, // Hacia dónde mira la cámara
   // Acciones
   grabarVideo: () => prepararGrabacion("horizontal"),
   previsualizarCoreografia: () => previsualizarCoreografiaVideo(),
   descargarImagen: () => descargarCaptura(),
-  descargarSoloTextura: () => descargarTexturaGenerada(),
 };
 
 // --- 3. CANVAS DE TEXTURA Y PREVISUALIZACIÓN ---
@@ -354,17 +343,6 @@ async function cargarSVGColoreado(path, fillColor) {
 }
 
 const imageCache = {};
-
-function cargarImagen(path) {
-  if (imageCache[path]) return imageCache[path];
-
-  const img = new Image();
-  img.onload = () => actualizarTextura();
-  img.src = path;
-
-  imageCache[path] = img;
-  return img;
-}
 
 function cargarImagenAsync(path) {
   return new Promise((resolve, reject) => {
@@ -1277,25 +1255,6 @@ function descargarCaptura() {
   }, "image/png");
 }
 
-function descargarTexturaGenerada() {
-  // Asegurarnos de que el canvas esté actualizado antes de descargar
-  actualizarTextura();
-
-  // Convertir el canvas de la textura a un Blob
-  textCanvas.toBlob((blob) => {
-    if (!blob) return;
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    // Nombre del archivo basado en el jugador
-    link.download = `textura-jersey-${settings.nombre || "personalizada"}.png`;
-    link.click();
-
-    // Limpiar memoria
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }, "image/png");
-}
-
 let mediaRecorder = null;
 let recordedChunks = [];
 let recordingTimeout = null;
@@ -1456,30 +1415,6 @@ function posicionarOverlaysVideo() {
   hashtagMaterial.map = crearTexturaHashtag(settings.videoHashtag);
   hashtagMaterial.needsUpdate = true;
   actualizarHashtagVideo();
-}
-
-function fijarCamaraParaVideo() {
-  // 1. Deshabilitamos controles para que el usuario no interfiera
-  controls.enabled = false;
-  controls.update();
-
-  // 2. Seteamos la posición exacta
-  camera.position.set(
-    settings.cameraVideoPos.x,
-    settings.cameraVideoPos.y,
-    settings.cameraVideoPos.z,
-  );
-
-  // 3. Apuntamos al centro del modelo (o al pecho)
-  camera.lookAt(
-    settings.cameraVideoLookAt.x,
-    settings.cameraVideoLookAt.y,
-    settings.cameraVideoLookAt.z,
-  );
-
-  // 4. Actualizamos la matriz y los controles
-  camera.updateProjectionMatrix();
-  controls.update();
 }
 
 function iniciarCoreografiaGrabacion() {
