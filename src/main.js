@@ -158,7 +158,7 @@ const settings = {
   posicionPredefinida: "Espalda",
   posX: 1550,
   posY: 510,
-  espaciado: 260,
+  espaciado: 280,
   escalaX: 1,
   escalaY: 1,
   pechoX: 750,
@@ -383,9 +383,6 @@ function cargarImagenAsync(path) {
   });
 }
 
-
-
-
 function aplicarPaleta(idPaleta) {
   const paleta =
     paletasDisponibles.find((item) => item.id === idPaleta) ||
@@ -416,13 +413,14 @@ async function actualizarTextura() {
   await cargarFuenteCanvas(settings.fuente);
 
   try {
-    await document.fonts.load(`10px "Anton"`); 
+    await document.fonts.load(`10px "Anton"`);
     // Si prefieres intentar con Impact (solo si la tienes local):
     // await document.fonts.load(`10px "Impact"`);
   } catch (e) {
-    console.warn("La fuente tardó mucho o no cargó, usando fuente de respaldo.");
+    console.warn(
+      "La fuente tardó mucho o no cargó, usando fuente de respaldo.",
+    );
   }
-
 
   // 1. LIMPIEZA Y FONDO BASE
   ctx.clearRect(0, 0, 2048, 2048);
@@ -430,7 +428,7 @@ async function actualizarTextura() {
   ctx.fillRect(0, 0, 2048, 2048);
 
   const fuenteFinal = "Anton"; // O settings.fuente si ya lo actualizaste
-  ctx.font = `${settings.negrita ? '700' : '500'} ${settings.tamanioNombre}px "${fuenteFinal}"`;
+  ctx.font = `${settings.negrita ? "700" : "500"} ${settings.tamanioNombre}px "${fuenteFinal}"`;
 
   //console.log(ctx.font);
 
@@ -1436,9 +1434,8 @@ function ajustarModeloParaVideo() {
 }
 
 function aplicarEscalaLogoVideo(escala) {
-  const multiplicadorVertical = camera.aspect < 1
-    ? settings.videoLogoEscalaFinalVertical
-    : 1;
+  const multiplicadorVertical =
+    camera.aspect < 1 ? settings.videoLogoEscalaFinalVertical : 1;
   const escalaFinal = escala * multiplicadorVertical;
 
   logoMesh.scale.set(
