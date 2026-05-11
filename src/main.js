@@ -1129,6 +1129,11 @@ function aplicarFormatoGrabacion(orientacion) {
   actualizarHashtagVideo();
 }
 
+function restaurarFormatoEditor() {
+  tamanoCanvas = obtenerTamanoCanvas();
+  actualizarRenderTargets();
+}
+
 const clamp01 = (valor) => Math.min(1, Math.max(0, valor));
 const easeOutCubic = (valor) => 1 - Math.pow(1 - clamp01(valor), 3);
 
@@ -1353,6 +1358,7 @@ function prepararGrabacion(orientacion = "horizontal") {
       recordingTimeout = null;
     }
     finalizarCoreografiaGrabacion();
+    restaurarFormatoEditor();
     redimensionarRenderer();
     actualizarEstadoVideo("", false);
   };
@@ -1368,6 +1374,7 @@ function prepararGrabacion(orientacion = "horizontal") {
     const blobType = mediaRecorder.mimeType || mimeType || "video/webm";
     videoGenerado = new Blob(recordedChunks, { type: blobType });
     finalizarCoreografiaGrabacion();
+    restaurarFormatoEditor();
     redimensionarRenderer();
     mostrarVideoListo();
   };
