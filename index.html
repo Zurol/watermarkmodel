@@ -3,11 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <title>Personalizador 3D</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/watermarkmodel/assets/index-D6UutgyA.js"></script>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" crossorigin src="/watermarkmodel/assets/index-CEgemXe8.js"></script>
     <link rel="stylesheet" crossorigin href="/watermarkmodel/assets/index-GByLjXVC.css">
   </head>
 
@@ -26,22 +32,37 @@
 
       <label class="field">
         <span>Nombre</span>
-        <input type="text" id="control-nombre" maxlength="20" value="JUGADOR" />
+        <input type="text" id="control-nombre" maxlength="20" value="NOMBRE" />
       </label>
 
       <label class="field">
         <span>Número</span>
-        <input type="number" id="control-numero" maxlength="2" value="10" />
+        <input
+          type="number"
+          id="control-numero"
+          min="0"
+          max="99"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          value="10"
+        />
       </label>
 
       <fieldset class="field">
         <legend>Modelo</legend>
         <label
-          ><input type="radio" name="modelo-torso" value="./ModeloMasc.glb" checked />
+          ><input
+            type="radio"
+            name="modelo-torso"
+            value="./ModeloMasc.glb"
+            checked
+          />
           Torso A</label
         >
-        <label><input type="radio" name="modelo-torso" value="./ModeloFem.glb" />
-          Torso B</label>
+        <label
+          ><input type="radio" name="modelo-torso" value="./ModeloFem.glb" />
+          Torso B</label
+        >
       </fieldset>
 
       <fieldset class="field">
