@@ -354,6 +354,10 @@ function canvasEsVertical() {
   return tamanoCanvas.height > tamanoCanvas.width;
 }
 
+function obtenerPixelRatioEditor() {
+  return Math.max(1, window.devicePixelRatio || 1);
+}
+
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -367,7 +371,7 @@ const renderer = new THREE.WebGLRenderer({
   antialias: true,
   preserveDrawingBuffer: true,
 });
-renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setPixelRatio(obtenerPixelRatioEditor());
 renderer.setSize(tamanoCanvas.width, tamanoCanvas.height, false);
 renderer.domElement.style.width = "100%";
 renderer.domElement.style.height = "100%";
@@ -489,6 +493,21 @@ bgScene.add(bgMesh);
 const backgroundTextureLoader = new THREE.TextureLoader();
 let fondoImagenTexture = null;
 
+function crearTexturaGradienteFondo() {
+  const gCanvas = document.createElement("canvas");
+  gCanvas.width = 2;
+  gCanvas.height = 512;
+  const gCtx = gCanvas.getContext("2d");
+  const grd = gCtx.createLinearGradient(0, 0, 0, 512);
+  grd.addColorStop(0, settings.colorFondo2);
+  grd.addColorStop(1, settings.colorFondo);
+  gCtx.fillStyle = grd;
+  gCtx.fillRect(0, 0, 2, 512);
+  const textura = new THREE.CanvasTexture(gCanvas);
+  textura.colorSpace = THREE.SRGBColorSpace;
+  return textura;
+}
+
 function actualizarFondo() {
   if (settings.usarImagenFondo) {
     if (fondoImagenTexture) {
@@ -516,16 +535,7 @@ function actualizarFondo() {
       },
     );
   } else {
-    const gCanvas = document.createElement("canvas");
-    gCanvas.width = 2;
-    gCanvas.height = 512;
-    const gCtx = gCanvas.getContext("2d");
-    const grd = gCtx.createLinearGradient(0, 0, 0, 512);
-    grd.addColorStop(0, settings.colorFondo2);
-    grd.addColorStop(1, settings.colorFondo);
-    gCtx.fillStyle = grd;
-    gCtx.fillRect(0, 0, 2, 512);
-    scene.background = new THREE.CanvasTexture(gCanvas);
+    scene.background = crearTexturaGradienteFondo();
     bgMesh.material.map = null;
     bgMesh.material.needsUpdate = true;
     marcarRecursoInicialListo("fondo");
@@ -661,6 +671,7 @@ logoTextureLoader.load(
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.enablePan = false;
+controls.enableZoom = !window.matchMedia("(pointer: coarse)").matches;
 controls.minDistance = 0.55;
 controls.maxDistance = 1.15;
 controls.minPolarAngle = Math.PI / 2;
@@ -1041,6 +1052,10 @@ function obtenerTipoArchivoVideo(tipo) {
   return tipo.includes("mp4") ? "video/mp4" : "video/webm";
 }
 
+function videoEsCompatibleParaCompartir(video) {
+  return video?.type?.includes("mp4");
+}
+
 function crearNombreVideo() {
   const extension = obtenerExtensionVideo(videoGenerado?.type || "video/webm");
   return `story-${formatoGrabacionActual}-${settings.nombre || "preview"}.${extension}`;
@@ -1058,6 +1073,14 @@ function descargarBlobVideo() {
 
 async function compartirVideoGenerado() {
   if (!videoGenerado) return;
+
+  if (!videoEsCompatibleParaCompartir(videoGenerado)) {
+    console.warn(
+      "El navegador generó WebM; se descarga el archivo para compartirlo manualmente.",
+    );
+    descargarBlobVideo();
+    return;
+  }
 
   const file = new File([videoGenerado], crearNombreVideo(), {
     type: obtenerTipoArchivoVideo(videoGenerado.type || "video/webm"),
@@ -1350,6 +1373,7 @@ function prepararGrabacion(orientacion = "horizontal") {
   };
 
   mediaRecorder.start();
+
   recordingTimeout = setTimeout(() => {
     if (mediaRecorder && mediaRecorder.state === "recording")
       mediaRecorder.stop();

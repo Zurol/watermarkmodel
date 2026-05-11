@@ -132,11 +132,11 @@ export const maxCaracteresNumero = 2;
 export const inclinacionPlayeraCuello = (5 * Math.PI) / 180;
 
 export const limitarNumero = (numero) =>
-  String(numero).slice(0, maxCaracteresNumero);
+  String(numero).replace(/\D/g, "").slice(0, maxCaracteresNumero);
 
 export function createInitialSettings() {
   return {
-    nombre: "JUGADOR",
+    nombre: "NOMBRE",
     numero: "10",
     modeloTorso: modelosTorsoDisponibles["Torso A"],
     fuente: fuenteTextoPredeterminada,
@@ -232,7 +232,7 @@ export function createInitialSettings() {
     videoDuracionMs: 5000,
     videoModeloProporcionPantalla: 0,
     videoGiroInicioMs: 200,
-    videoGiroDuracionMs: 2200,
+    videoGiroDuracionMs: 2800,
     videoGiroGrados: 360,
     videoGiroEje: "y",
     videoOverlayInicioMs: 1200,
